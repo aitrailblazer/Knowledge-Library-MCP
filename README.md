@@ -4,6 +4,9 @@
 
 **Knowledge Library MCP (KL MCP)** is a multi-modal app I developed to tackle the chaos of managing thousands of documents—Machine Learning files, SEC filings like TSLA 10-Ks and 10-Qs, process workflows, and charts—by finding them fast and enabling chat-based querying with Azure AI Agent Service. Below, I’ll share what inspired me, what I learned, how I built it, and the challenges I faced.
 
+![Architecture Diagram](https://github.com/aitrailblazer/Knowledge-Library-MCP/blob/main/img/AIEdgePulse06-1-front.png)  
+*The library-like architecture of KL MCP, powered by Azure AI Agent Service and MCP bots.*
+
 ## Inspiration
 
 My inspiration came from wrestling with documentation overload as a developer—hours lost digging through PDFs, Excel sheets, and charts just to find the right info. Anthropic’s Model Context Protocol (MCP) caught my eye, showing how context could unlock insights from scattered data. I initially tried chunking documents and vectorizing them in Cosmos DB NoSQL, but as the pile grew, it became impossible to pinpoint specifics. I envisioned a smarter system, like a library, to organize and chat with documents using Azure’s AI tools—multi-modal, scalable, and responsible—turning frustration into a hackathon challenge worth solving.
@@ -28,8 +31,7 @@ I built KL MCP solo, leveraging Azure AI Agent Service’s ecosystem and using G
 - **Azure AI Studio Agent:** With Copilot’s suggestions, I set up a GPT-4o agent, coded it to “Find files, call functions, run code, and chat,” integrating multi-modal insights with Responsible AI.
 - **C# Client:** Copilot streamlined my coding of a lean app to manage it all—uploading, threading, querying—via the Azure AI Agents SDK.
 
-![Architecture Diagram](https://github.com/aitrailblazer/Knowledge-Library-MCP/blob/main/img/AIEdgePulse06-1-front.png)  
-*The library-like architecture of KL MCP, powered by Azure AI Agent Service and MCP bots.*
+
 
 ## Challenges we ran into
 
