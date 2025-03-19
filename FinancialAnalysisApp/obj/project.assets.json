@@ -2,6 +2,23 @@
   "version": 3,
   "targets": {
     "net9.0": {
+      "Azure.AI.DocumentIntelligence/1.0.0": {
+        "type": "package",
+        "dependencies": {
+          "Azure.Core": "1.44.1",
+          "System.ClientModel": "1.2.1"
+        },
+        "compile": {
+          "lib/net8.0/Azure.AI.DocumentIntelligence.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Azure.AI.DocumentIntelligence.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Azure.AI.Inference/1.0.0-beta.3": {
         "type": "package",
         "dependencies": {
@@ -138,11 +155,11 @@
           }
         }
       },
-      "System.ClientModel/1.1.0": {
+      "System.ClientModel/1.2.1": {
         "type": "package",
         "dependencies": {
-          "System.Memory.Data": "1.0.2",
-          "System.Text.Json": "6.0.9"
+          "System.Memory.Data": "6.0.0",
+          "System.Text.Json": "6.0.10"
         },
         "compile": {
           "lib/net6.0/System.ClientModel.dll": {
@@ -301,6 +318,24 @@
     }
   },
   "libraries": {
+    "Azure.AI.DocumentIntelligence/1.0.0": {
+      "sha512": "RSpMmlRY5vvGy2TrAk4djJTqOsdHUunvhcSoSN+FJtexqZh6RFn+a2ylehIA/N+HV2IK0i+XK4VG3rDa8h2tsA==",
+      "type": "package",
+      "path": "azure.ai.documentintelligence/1.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "CHANGELOG.md",
+        "README.md",
+        "azure.ai.documentintelligence.1.0.0.nupkg.sha512",
+        "azure.ai.documentintelligence.nuspec",
+        "azureicon.png",
+        "lib/net8.0/Azure.AI.DocumentIntelligence.dll",
+        "lib/net8.0/Azure.AI.DocumentIntelligence.xml",
+        "lib/netstandard2.0/Azure.AI.DocumentIntelligence.dll",
+        "lib/netstandard2.0/Azure.AI.DocumentIntelligence.xml"
+      ]
+    },
     "Azure.AI.Inference/1.0.0-beta.3": {
       "sha512": "4q5cyPgr6id792nMVyY8p/9ONJI51UQrhHrxby/HK924tyJvCkZxw66+x6LPNoCY5+6Z+ylUDP73vSuFahW2mg==",
       "type": "package",
@@ -462,10 +497,10 @@
         "microsoft.identitymodel.abstractions.nuspec"
       ]
     },
-    "System.ClientModel/1.1.0": {
-      "sha512": "UocOlCkxLZrG2CKMAAImPcldJTxeesHnHGHwhJ0pNlZEvEXcWKuQvVOER2/NiOkJGRJk978SNdw3j6/7O9H1lg==",
+    "System.ClientModel/1.2.1": {
+      "sha512": "s9+M5El+DXdCRRLzxak8uGBKWT8H/eIssGpFtpaMKdJULrQbBDPH/zFbVyHX+NDczhS5EvjHFbBH9/L+0UhmcA==",
       "type": "package",
-      "path": "system.clientmodel/1.1.0",
+      "path": "system.clientmodel/1.2.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -476,7 +511,7 @@
         "lib/net6.0/System.ClientModel.xml",
         "lib/netstandard2.0/System.ClientModel.dll",
         "lib/netstandard2.0/System.ClientModel.xml",
-        "system.clientmodel.1.1.0.nupkg.sha512",
+        "system.clientmodel.1.2.1.nupkg.sha512",
         "system.clientmodel.nuspec"
       ]
     },
@@ -785,6 +820,7 @@
   },
   "projectFileDependencyGroups": {
     "net9.0": [
+      "Azure.AI.DocumentIntelligence >= 1.0.0",
       "Azure.AI.Inference >= 1.0.0-beta.3",
       "Azure.AI.Projects >= 1.0.0-beta.4",
       "Azure.Identity >= 1.13.2"
@@ -796,11 +832,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/aitrailblazer/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
+      "projectUniqueName": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/Knowledge-Library-MCP/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
       "projectName": "FinancialAnalysisApp",
-      "projectPath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/aitrailblazer/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
+      "projectPath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/Knowledge-Library-MCP/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
       "packagesPath": "/Users/constantinevassilev02/.nuget/packages/",
-      "outputPath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/aitrailblazer/FinancialAnalysisApp/obj/",
+      "outputPath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/Knowledge-Library-MCP/FinancialAnalysisApp/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/constantinevassilev02/.nuget/NuGet/NuGet.Config"
@@ -834,6 +870,10 @@
       "net9.0": {
         "targetAlias": "net9.0",
         "dependencies": {
+          "Azure.AI.DocumentIntelligence": {
+            "target": "Package",
+            "version": "[1.0.0, )"
+          },
           "Azure.AI.Inference": {
             "target": "Package",
             "version": "[1.0.0-beta.3, )"

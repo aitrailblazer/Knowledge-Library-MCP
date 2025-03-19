@@ -8,12 +8,25 @@
     ".NETCoreApp,Version=v9.0": {
       "FinancialAnalysisApp/1.0.0": {
         "dependencies": {
+          "Azure.AI.DocumentIntelligence": "1.0.0",
           "Azure.AI.Inference": "1.0.0-beta.3",
           "Azure.AI.Projects": "1.0.0-beta.4",
           "Azure.Identity": "1.13.2"
         },
         "runtime": {
           "FinancialAnalysisApp.dll": {}
+        }
+      },
+      "Azure.AI.DocumentIntelligence/1.0.0": {
+        "dependencies": {
+          "Azure.Core": "1.44.1",
+          "System.ClientModel": "1.2.1"
+        },
+        "runtime": {
+          "lib/net8.0/Azure.AI.DocumentIntelligence.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.24.61602"
+          }
         }
       },
       "Azure.AI.Inference/1.0.0-beta.3": {
@@ -42,7 +55,7 @@
       "Azure.Core/1.44.1": {
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
-          "System.ClientModel": "1.1.0",
+          "System.ClientModel": "1.2.1",
           "System.Diagnostics.DiagnosticSource": "6.0.1",
           "System.Memory.Data": "6.0.0",
           "System.Numerics.Vectors": "4.5.0",
@@ -112,15 +125,15 @@
           }
         }
       },
-      "System.ClientModel/1.1.0": {
+      "System.ClientModel/1.2.1": {
         "dependencies": {
           "System.Memory.Data": "6.0.0",
           "System.Text.Json": "6.0.10"
         },
         "runtime": {
           "lib/net6.0/System.ClientModel.dll": {
-            "assemblyVersion": "1.1.0.0",
-            "fileVersion": "1.100.24.46703"
+            "assemblyVersion": "1.2.1.0",
+            "fileVersion": "1.200.124.50905"
           }
         }
       },
@@ -179,6 +192,13 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Azure.AI.DocumentIntelligence/1.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RSpMmlRY5vvGy2TrAk4djJTqOsdHUunvhcSoSN+FJtexqZh6RFn+a2ylehIA/N+HV2IK0i+XK4VG3rDa8h2tsA==",
+      "path": "azure.ai.documentintelligence/1.0.0",
+      "hashPath": "azure.ai.documentintelligence.1.0.0.nupkg.sha512"
+    },
     "Azure.AI.Inference/1.0.0-beta.3": {
       "type": "package",
       "serviceable": true,
@@ -235,12 +255,12 @@
       "path": "microsoft.identitymodel.abstractions/6.35.0",
       "hashPath": "microsoft.identitymodel.abstractions.6.35.0.nupkg.sha512"
     },
-    "System.ClientModel/1.1.0": {
+    "System.ClientModel/1.2.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-UocOlCkxLZrG2CKMAAImPcldJTxeesHnHGHwhJ0pNlZEvEXcWKuQvVOER2/NiOkJGRJk978SNdw3j6/7O9H1lg==",
-      "path": "system.clientmodel/1.1.0",
-      "hashPath": "system.clientmodel.1.1.0.nupkg.sha512"
+      "sha512": "sha512-s9+M5El+DXdCRRLzxak8uGBKWT8H/eIssGpFtpaMKdJULrQbBDPH/zFbVyHX+NDczhS5EvjHFbBH9/L+0UhmcA==",
+      "path": "system.clientmodel/1.2.1",
+      "hashPath": "system.clientmodel.1.2.1.nupkg.sha512"
     },
     "System.Diagnostics.DiagnosticSource/6.0.1": {
       "type": "package",

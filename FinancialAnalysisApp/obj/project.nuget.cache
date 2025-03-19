@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "RhOjyR7ejOQ=",
+  "dgSpecHash": "SOZ6y/GfZr0=",
   "success": true,
-  "projectFilePath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/aitrailblazer/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
+  "projectFilePath": "/Users/constantinevassilev02/MyLocalDocuments/go-projects/Knowledge-Library-MCP/FinancialAnalysisApp/FinancialAnalysisApp.csproj",
   "expectedPackageFiles": [
+    "/Users/constantinevassilev02/.nuget/packages/azure.ai.documentintelligence/1.0.0/azure.ai.documentintelligence.1.0.0.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/azure.ai.inference/1.0.0-beta.3/azure.ai.inference.1.0.0-beta.3.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/azure.ai.projects/1.0.0-beta.4/azure.ai.projects.1.0.0-beta.4.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/azure.core/1.44.1/azure.core.1.44.1.nupkg.sha512",
@@ -12,7 +13,7 @@
     "/Users/constantinevassilev02/.nuget/packages/microsoft.identity.client/4.67.2/microsoft.identity.client.4.67.2.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/microsoft.identity.client.extensions.msal/4.67.2/microsoft.identity.client.extensions.msal.4.67.2.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/microsoft.identitymodel.abstractions/6.35.0/microsoft.identitymodel.abstractions.6.35.0.nupkg.sha512",
-    "/Users/constantinevassilev02/.nuget/packages/system.clientmodel/1.1.0/system.clientmodel.1.1.0.nupkg.sha512",
+    "/Users/constantinevassilev02/.nuget/packages/system.clientmodel/1.2.1/system.clientmodel.1.2.1.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/system.diagnostics.diagnosticsource/6.0.1/system.diagnostics.diagnosticsource.6.0.1.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/system.memory/4.5.5/system.memory.4.5.5.nupkg.sha512",
     "/Users/constantinevassilev02/.nuget/packages/system.memory.data/6.0.0/system.memory.data.6.0.0.nupkg.sha512",
