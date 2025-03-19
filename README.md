@@ -114,5 +114,5 @@ dotnet run -l
 
 ### Use of Azure.AI.DocumentIntelligence for Image Preprocessing
 
-The `FinancialAnalysisApp/Program.cs` file now includes the use of `Azure.AI.DocumentIntelligence` for image preprocessing. This allows the application to extract content from image files and convert it into a format that can be analyzed by the agent. The extracted content is saved as a Markdown file, which is then uploaded and used to create or update vector stores. This enhances the application's ability to handle multi-modal data, including both text and images.
+The `FinancialAnalysisApp/Program.cs` file includes the use of `Azure.AI.DocumentIntelligence` for image preprocessing. This allows the application to extract content from image files and convert it into a format that can be analyzed by the agent. The extracted content is saved as a Markdown file, which is then uploaded and used to create or update vector stores. This enhances the application's ability to handle multi-modal data, including both text and images.
 
