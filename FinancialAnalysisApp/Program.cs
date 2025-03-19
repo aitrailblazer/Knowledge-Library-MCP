@@ -11,6 +11,13 @@ using System.Threading.Tasks;
 
 class Program
 {
+    /// <summary>
+    /// A static readonly collection of supported file extensions for the application.
+    /// </summary>
+    /// <remarks>
+    /// This HashSet contains a list of file extensions that are supported by the application.
+    /// The comparison is case-insensitive due to the use of <see cref="StringComparer.OrdinalIgnoreCase"/>.
+    /// </remarks>
     private static readonly HashSet<string> SupportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         ".c", ".cpp", ".cs", ".css", ".doc", ".docx", ".go", ".html", ".java", ".js", 
@@ -22,7 +29,47 @@ class Program
     {
         ".png", ".jpg", ".tiff", ".bmp"
     };
-
+    
+    /// The entry point of the Financial Analysis application.
+    /// This method initializes the application, processes command-line arguments, 
+    /// and performs operations such as managing vector stores or interacting with files for analysis.
+    /// </summary>
+    /// <param name="args">
+    /// Command-line arguments:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <c>-l</c> or <c>--list</c>: Lists and manages vector stores.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <c>&lt;filename&gt;</c>: Specifies the file to analyze. The filename must follow the format 
+    /// <c>&lt;ticker&gt;--&lt;form&gt;--&lt;date&gt;_&lt;timestamp&gt;.&lt;extension&gt;</c>.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// </param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// The application requires the following environment variables:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <c>AIPROJECT_CONNECTION_STRING</c>: The connection string for the AgentsClient.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <c>USER_PREFIX</c> (optional): A prefix for multi-user support. Defaults to "DefaultUser".
+    /// </description>
+    /// </item>
+    /// </list>
+    /// Supported file extensions are defined in the <c>SupportedExtensions</c> collection.
+    /// </remarks>
+    /// <exception cref="System.Exception">
+    /// Thrown when an error occurs during vector store management, agent creation, or file analysis.
+    /// </exception>
     static async Task Main(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("AIPROJECT_CONNECTION_STRING");
@@ -103,6 +150,25 @@ class Program
         Console.ReadKey();
     }
 
+    /// Lists and manages vector stores in Azure using the provided <see cref="AgentsClient"/>.
+    /// </summary>
+    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with Azure vector stores.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// This method retrieves a list of vector stores from Azure and displays them in a console-based UI.
+    /// Users can navigate through the list using arrow keys, delete a selected vector store, or exit the management interface.
+    /// 
+    /// <para>
+    /// Key functionalities:
+    /// <list type="bullet">
+    /// <item><description>Displays a list of vector stores with details such as index, name, ID, and creation date.</description></item>
+    /// <item><description>Allows navigation through the list using the ↑ and ↓ arrow keys.</description></item>
+    /// <item><description>Enables deletion of a selected vector store with confirmation.</description></item>
+    /// <item><description>Handles errors during listing and deletion operations gracefully.</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    /// <exception cref="Exception">Thrown if an error occurs while retrieving or deleting vector stores.</exception>
     private static async Task ListAndManageVectorStoresAsync(AgentsClient client)
     {
         try
@@ -195,6 +261,22 @@ class Program
         }
     }
 
+    /// Initiates a chat loop with the specified agent, allowing the user to ask questions
+    /// and receive responses based on the provided file data and vector store.
+    /// </summary>
+    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with the agent service.</param>
+    /// <param name="agent">The <see cref="Agent"/> instance representing the agent to interact with.</param>
+    /// <param name="filePath">The file path of the data to be used by the agent for answering questions.</param>
+    /// <param name="vectorStoreName">The name of the vector store containing the file data.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <remarks>
+    /// This method continuously prompts the user for input, sends the input to the agent,
+    /// and displays the agent's response. The loop exits when the user presses the Esc key.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when any of the operations (e.g., creating a thread, sending a message, starting a run)
+    /// fail to return a valid response.
+    /// </exception>
     private static async Task ChatLoop(AgentsClient client, Agent agent, string filePath, string vectorStoreName)
     {
         Console.WriteLine($"Chatting with file '{filePath}' using agent '{agent.Name}' (Vector Store: '{vectorStoreName}'). Enter a question (or press Esc to exit):");
@@ -295,6 +377,23 @@ class Program
     }
 
 #pragma warning disable CS8603 // Suppress false positive CS8603 warning
+    
+    /// Retrieves an existing vector store by name or creates a new one if it does not exist.
+    /// </summary>
+    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with the Azure service.</param>
+    /// <param name="filePath">The file path of the document or image to be uploaded for vector store creation.</param>
+    /// <param name="vectorStoreName">The name of the vector store to retrieve or create.</param>
+    /// <returns>
+    /// A <see cref="Task{VectorStore}"/> representing the asynchronous operation, 
+    /// with the resulting <see cref="VectorStore"/> object.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the vector stores cannot be retrieved, the file upload fails, or the vector store creation fails.
+    /// </exception>
+    /// <remarks>
+    /// If the file provided is an image, it will be preprocessed using Document Intelligence to extract content as Markdown.
+    /// The extracted content will be saved to a new file, which will then be uploaded for vector store creation.
+    /// </remarks>
     private static async Task<VectorStore> GetOrCreateVectorStoreAsync(AgentsClient client, string filePath, string vectorStoreName)
     {
         Console.WriteLine($"Checking if vector store '{vectorStoreName}' exists in Azure...");
@@ -355,6 +454,22 @@ class Program
     }
 #pragma warning restore CS8603
 
+        /// Extracts the content of a document or image file as Markdown using the Azure Document Intelligence service.
+    /// </summary>
+    /// <param name="filePath">The file path of the document or image to analyze.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains the extracted content
+    /// formatted as a Markdown string. If no content is extracted, an empty string is returned.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the Document Intelligence endpoint or API key is not set in the environment variables.
+    /// </exception>
+    /// <remarks>
+    /// This method uses the Azure Document Intelligence client to analyze the document or image.
+    /// It extracts text lines and tables from the document and formats them as Markdown.
+    /// Ensure that the environment variables "DOCUMENT_INTELLIGENCE_ENDPOINT" and "DOCUMENT_INTELLIGENCE_API_KEY"
+    /// are set before calling this method.
+    /// </remarks>
     private static async Task<string> ExtractContentAsMarkdown(string filePath)
     {
         var endpoint = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_ENDPOINT");
@@ -419,6 +534,19 @@ class Program
         return markdown.ToString();
     }
 
+    /// Retrieves an existing agent by name or creates a new one if it does not exist. 
+    /// If an agent with the specified name exists, it is deleted and recreated to attach a new vector store.
+    /// </summary>
+    /// <param name="client">The <see cref="AgentsClient"/> used to interact with the agent service.</param>
+    /// <param name="vectorStore">The <see cref="VectorStore"/> to associate with the agent.</param>
+    /// <param name="agentName">The name of the agent to retrieve or create.</param>
+    /// <param name="companyTicker">The ticker symbol of the company the agent is associated with.</param>
+    /// <param name="formName">The name of the form (e.g., "10-K", "Q4") to customize the agent's instructions.</param>
+    /// <param name="vectorStoreName">The name of the vector store to include in the agent's instructions.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains the created or retrieved <see cref="Agent"/>.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown if the agent creation fails.</exception>
     private static async Task<Agent> GetOrCreateAgentAsync(AgentsClient client, VectorStore vectorStore, string agentName, string companyTicker, string formName, string vectorStoreName)
     {
         Console.WriteLine($"Checking if agent '{agentName}' exists...");
@@ -492,6 +620,18 @@ class Program
         return (companyTicker, formName, date);
     }
 
+    /// Reads a line of input from the console, allowing the user to cancel input with the Escape key.
+    /// </summary>
+    /// <returns>
+    /// The input string entered by the user, or <c>null</c> if the Escape key is pressed.
+    /// </returns>
+    /// <remarks>
+    /// - The method captures user input character by character.
+    /// - Pressing the Enter key finalizes the input and returns the string.
+    /// - Pressing the Backspace key removes the last character from the input.
+    /// - Pressing the Escape key cancels the input and returns <c>null</c>.
+    /// - The method provides real-time feedback by displaying the input as it is typed.
+    /// </remarks>
     private static string ReadLineWithEsc()
     {
         string input = "";
