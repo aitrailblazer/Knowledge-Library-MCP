@@ -31,8 +31,6 @@ I built KL MCP solo, leveraging Azure AI Agent Service’s ecosystem and using G
 - **Azure AI Studio Agent:** With Copilot’s suggestions, I set up a GPT-4o agent, coded it to “Find files, call functions, run code, and chat,” integrating multi-modal insights with Responsible AI.
 - **C# Client:** Copilot streamlined my coding of a lean app to manage it all—uploading, threading, querying—via the Azure AI Agents SDK.
 
-
-
 ## Challenges we ran into
 
 Scaling was the biggest hurdle—my initial Cosmos DB NoSQL chunking couldn’t handle thousands of files without losing precision. Mapping a library-like hierarchy to Azure’s tools took trial and error; syncing metadata in Cosmos DB NoSQL with vector stores was complex. Integrating live data and code outputs while upholding Responsible AI standards—fairness, transparency—pushed my skills, but Copilot and debug cycles got me through.
@@ -53,3 +51,64 @@ I learned Azure AI Agent Service’s strength for multi-modal apps—text and im
 Next, I’ll expand KL MCP to include voice/audio for dictating queries or video/motion for animated workflows, broadening its multi-modal scope. I’ll refine the bot system with smarter domain logic, enhance metadata with AI-driven tagging, and integrate Azure Machine Learning for predictive insights—all while upholding Responsible AI.
 
 ---
+
+## New Features and Updates in FinancialAnalysisApp
+
+### New Functionalities in FinancialAnalysisApp/Program.cs
+
+The `FinancialAnalysisApp/Program.cs` file has been updated with new functionalities to enhance the financial analysis capabilities of the application. The new features include:
+
+- **Command-line Argument Processing**: The application now supports command-line arguments for listing and managing vector stores, as well as specifying files for analysis.
+- **Environment Variable Support**: The application requires specific environment variables for configuration, such as `AIPROJECT_CONNECTION_STRING` and `USER_PREFIX`.
+- **File Analysis**: The application can analyze files with supported extensions and extract relevant information based on the file name format.
+- **Vector Store Management**: The application can list, manage, and delete vector stores in Azure.
+- **Interactive Chat Loop**: The application includes an interactive chat loop for querying the agent and receiving responses based on the provided file data.
+
+### New Dependencies and Installation Process
+
+The `FinancialAnalysisApp` directory now includes new dependencies that need to be installed for the application to function correctly. The dependencies are specified in the `FinancialAnalysisApp.csproj` file and can be installed using the following command:
+
+```bash
+dotnet restore
+```
+
+The new dependencies include:
+
+- `Azure.AI.DocumentIntelligence`
+- `Azure.AI.Inference`
+- `Azure.AI.Projects`
+- `Azure.Identity`
+
+### How to Use the New Features
+
+To use the new features implemented in the `FinancialAnalysisApp`, follow these steps:
+
+1. **Set Environment Variables**: Ensure that the required environment variables are set. For example:
+
+```bash
+export AIPROJECT_CONNECTION_STRING="your_connection_string"
+export USER_PREFIX="your_user_prefix"
+```
+
+2. **Run the Application**: Use the following command to run the application with the desired command-line arguments:
+
+```bash
+dotnet run <filename>
+```
+
+Replace `<filename>` with the name of the file you want to analyze. The filename must follow the format `<ticker>--<form>--<date>_<timestamp>.<extension>`.
+
+3. **List and Manage Vector Stores**: Use the following command to list and manage vector stores:
+
+```bash
+dotnet run -l
+```
+
+4. **Interactive Chat Loop**: After running the application with a file, you can enter questions to interact with the agent and receive responses based on the file data.
+
+```bash
+> What is the revenue for the specified period?
+```
+
+5. **Exit the Application**: Press any key to exit the application after completing your queries.
+
