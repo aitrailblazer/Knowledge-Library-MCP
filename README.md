@@ -116,3 +116,35 @@ dotnet run -l
 
 The `FinancialAnalysisApp/Program.cs` file includes the use of `Azure.AI.DocumentIntelligence` for image preprocessing. This allows the application to extract content from image files and convert it into a format that can be analyzed by the agent. The extracted content is saved as a Markdown file, which is then uploaded and used to create or update vector stores. This enhances the application's ability to handle multi-modal data, including both text and images.
 
+## Main Program Explanation
+
+### Command-line Argument Processing
+
+The main program processes command-line arguments to determine the operation mode. It supports the following arguments:
+
+- `-l` or `--list`: Lists and manages vector stores.
+- `<filename>`: Specifies the file to analyze. The filename must follow the format `<ticker>--<form>--<date>_<timestamp>.<extension>`.
+
+### Environment Variable Support
+
+The application requires the following environment variables:
+
+- `AIPROJECT_CONNECTION_STRING`: The connection string for the AgentsClient.
+- `USER_PREFIX` (optional): A prefix for multi-user support. Defaults to "DefaultUser".
+
+### File Analysis
+
+The application can analyze files with the following supported extensions:
+
+- Text files: `.c`, `.cpp`, `.cs`, `.css`, `.doc`, `.docx`, `.go`, `.html`, `.java`, `.js`, `.json`, `.md`, `.pdf`, `.php`, `.pptx`, `.py`, `.rb`, `.sh`, `.tex`, `.ts`, `.txt`
+- Image files: `.png`, `.jpg`, `.tiff`, `.bmp`
+
+The file name must follow the format `<ticker>--<form>--<date>_<timestamp>.<extension>`. The application extracts relevant information from the file name, such as the company ticker, form name, and date.
+
+### Vector Store Management
+
+The application can list, manage, and delete vector stores in Azure. It uses the `AgentsClient` to interact with the vector stores and provides a console-based UI for navigation and management.
+
+### Interactive Chat Loop
+
+The application includes an interactive chat loop for querying the agent and receiving responses based on the provided file data. The user can enter questions, and the agent will respond with relevant information extracted from the file. The chat loop continues until the user presses the Esc key to exit.
