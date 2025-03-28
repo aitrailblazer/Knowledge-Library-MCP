@@ -1,0 +1,124 @@
+flowchart TD
+    %% Main Title
+    Title["MCP Server Go"]:::mainTitle
+    Subtitle["(Model Context Protocol)"]:::subtitle
+    Title --> Subtitle
+    
+    %% Client Layer
+    User((User)):::userNode --> MCP[MCP Client]:::largeText
+    
+    %% Labels for subgraphs - placed outside and above
+    ServerLayerLabel["Server Layer"]:::subgraphLabel
+    ToolsLayerLabel["Tools Layer"]:::subgraphLabel
+    ServicesLayerLabel["External Services"]:::subgraphLabel
+    
+    %% Add spacing between subgraphs
+    ServerLayerSpacer[ ]:::spacer
+    ToolsLayerSpacer[ ]:::spacer
+    ServicesLayerSpacer[ ]:::spacer
+    
+    %% Server Layer - with explicit label above
+    ServerLayerLabel --- ServerLayerSpacer
+    subgraph ServerLayer[" "]
+        direction LR
+        HTTPServer["HTTP Server (Go)"]:::serverLayer
+        ToolRegistry["Tool Registry"]:::serverLayer
+        
+        MCP -->|HTTP Request| HTTPServer
+        HTTPServer -->|Register| ToolRegistry
+        HTTPServer -->|Lookup| ToolRegistry
+    end
+    
+    %% Tools Layer - with explicit label above
+    ServerLayer --- ToolsLayerSpacer
+    ToolsLayerLabel --- ToolsLayerSpacer
+    subgraph ToolsLayer[" "]
+        direction LR
+        WebTools["Web Tools"]:::toolsLayer
+        FinanceTools["Finance Tools"]:::toolsLayer
+        
+        ToolRegistry -->|Dispatch| WebTools
+        ToolRegistry -->|Dispatch| FinanceTools
+        
+        WebTools --> BraveSearch["Brave Search"]:::toolNode
+        FinanceTools --> YahooFinance["Yahoo Finance"]:::toolNode
+    end
+    
+    %% Services Layer - with explicit label above
+    ToolsLayer --- ServicesLayerSpacer
+    ServicesLayerLabel --- ServicesLayerSpacer
+    subgraph ServicesLayer[" "]
+        direction LR
+        BraveAPI["Brave Search API"]:::externalService
+        YahooAPI["Yahoo Finance API"]:::externalService
+        
+        BraveSearch -->|HTTP Request| BraveAPI
+        YahooFinance -->|HTTP Request| YahooAPI
+    end
+    
+    %% Endpoints description
+    EndpointsLabel["API Endpoints"]:::subgraphLabel
+    subgraph Endpoints[" "]
+        direction LR
+        ToolsEndpoint["/tools"]:::endpointNode
+        InvokeEndpoint["/invoke"]:::endpointNode
+        
+        HTTPServer --> ToolsEndpoint
+        HTTPServer --> InvokeEndpoint
+    end
+    
+    %% Footer
+    Footer["Copyright© 2025 Knowledge Library MCP"]:::footer
+    
+    %% Enhanced styling with much larger text and better spacing
+    classDef default font-size:22px;
+    classDef mainTitle fill:none,stroke:none,color:#000000,font-weight:bold,font-size:48px;
+    classDef subtitle fill:none,stroke:none,color:#555555,font-weight:normal,font-size:24px;
+    classDef footer fill:none,stroke:none,color:#555555,font-weight:normal,font-size:20px;
+    classDef userNode fill:#E8F4FD,stroke:#2980B9,stroke-width:3px,color:#2C3E50,font-weight:bold,font-size:32px;
+    classDef serverLayer fill:#5C9FDA,stroke:#2471A3,stroke-width:3px,color:white,font-weight:bold,font-size:32px;
+    classDef toolsLayer fill:#68B88E,stroke:#1E8449,stroke-width:3px,color:white,font-weight:bold,font-size:32px;
+    classDef externalService fill:#A2D9CE,stroke:#16A085,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef toolNode fill:#FFD6A5,stroke:#FF8C00,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef endpointNode fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef spacer fill:none,stroke:none,color:none;
+    classDef subgraphLabel fill:none,stroke:none,color:#333333,font-weight:bold,font-size:36px;
+    classDef largeText fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    
+    %% Apply styles to nodes - make nodes larger with padding
+    class Title mainTitle
+    class Subtitle subtitle
+    class Footer footer
+    class HTTPServer,ToolRegistry serverLayer
+    class WebTools,FinanceTools toolsLayer
+    class BraveAPI,YahooAPI externalService
+    class BraveSearch,YahooFinance toolNode
+    class ToolsEndpoint,InvokeEndpoint endpointNode
+    class ServerLayerSpacer,ToolsLayerSpacer,ServicesLayerSpacer spacer
+    class ServerLayerLabel,ToolsLayerLabel,ServicesLayerLabel,EndpointsLabel subgraphLabel
+    
+    %% Style subgraphs - much larger text, stronger borders and more padding
+    style ServerLayer fill:#AAD0F4,stroke:#2471A3,stroke-width:4px,padding:40px
+    style ToolsLayer fill:#D1F2DD,stroke:#1E8449,stroke-width:4px,padding:40px
+    style ServicesLayer fill:#D1F2EB,stroke:#16A085,stroke-width:4px,padding:40px
+    style Endpoints fill:#FCE7D1,stroke:#E67E22,stroke-width:4px,padding:40px
+    
+    %% Color coordinating labels with their subgraphs
+    style ServerLayerLabel color:#174E74
+    style ToolsLayerLabel color:#104726
+    style ServicesLayerLabel color:#0B4B3A
+    style EndpointsLabel color:#7D3C03
+    
+    %% Make all nodes larger with padding
+    style User padding:20px,margin:30px
+    style MCP padding:20px,margin:30px
+    style HTTPServer padding:20px,margin:30px
+    style ToolRegistry padding:20px,margin:30px
+    style WebTools padding:20px,margin:25px
+    style FinanceTools padding:20px,margin:25px
+    style BraveSearch padding:20px,margin:25px
+    style YahooFinance padding:20px,margin:25px
+    style BraveAPI padding:20px,margin:25px
+    style YahooAPI padding:20px,margin:25px
+    style ToolsEndpoint padding:20px,margin:25px
+    style InvokeEndpoint padding:20px,margin:25px

@@ -1,0 +1,91 @@
+flowchart TD
+    %% Main Title
+    Title["go-mcp-brave"]:::mainTitle
+    Subtitle["(Web Search and Brave Integration)"]:::subtitle
+    Title --> Subtitle
+
+    %% Client Layer
+    User((User)):::userNode --> BraveApp["go-mcp-brave"]:::largeText
+
+    %% Labels for subgraphs - placed outside and above
+    InputLabel["Input Sources"]:::subgraphLabel
+    ProcessingLabel["Processing Components"]:::subgraphLabel
+    OutputLabel["Output Components"]:::subgraphLabel
+
+    %% Add spacing between subgraphs
+    InputSpacer[ ]:::spacer
+    ProcessingSpacer[ ]:::spacer
+    OutputSpacer[ ]:::spacer
+
+    %% Input Sources - with explicit label above
+    InputLabel --- InputSpacer
+    subgraph InputSources[" "]
+        direction LR
+        UserQuery["User Query"]:::largeText
+        UserQuery --> BraveApp
+    end
+
+    %% Processing Components - with explicit label above
+    InputSources --- ProcessingSpacer
+    ProcessingLabel --- ProcessingSpacer
+    subgraph ProcessingComponents[" "]
+        direction LR
+        BraveApp --> WebSearch["Web Search API"]:::largeText
+        WebSearch --> DataProcessing["Data Processing"]:::largeText
+    end
+
+    %% Output Components - with explicit label above
+    ProcessingComponents --- OutputSpacer
+    OutputLabel --- OutputSpacer
+    subgraph OutputComponents[" "]
+        direction LR
+        DataProcessing --> SearchResults["Search Results"]:::largeText
+        SearchResults --> OutputDisplay["Output Display"]:::largeText
+    end
+
+    %% Footer
+    Footer["Copyright© 2025 AITrailblazer"]:::footer
+
+    %% Enhanced styling with much larger text and better spacing
+    classDef default font-size:22px;
+    classDef mainTitle fill:none,stroke:none,color:#000000,font-weight:bold,font-size:48px;
+    classDef subtitle fill:none,stroke:none,color:#555555,font-weight:normal,font-size:24px;
+    classDef footer fill:none,stroke:none,color:#555555,font-weight:normal,font-size:20px;
+    classDef userNode fill:#E8F4FD,stroke:#2980B9,stroke-width:3px,color:#2C3E50,font-weight:bold,font-size:32px;
+    classDef applicationLayer fill:#5C9FDA,stroke:#2471A3,stroke-width:3px,color:white,font-weight:bold,font-size:22px;
+    classDef dataStores fill:#F1C232,stroke:#B7950B,stroke-width:4px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef integrationLayer fill:#D7BDE2,stroke:#8E44AD,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef webFrontend fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef mcpServer fill:#FFD6A5,stroke:#FF8C00,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef externalComponents fill:#A2D9CE,stroke:#16A085,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef orchestration fill:#FADBD8,stroke:#E74C3C,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef spacer fill:none,stroke:none,color:none;
+    classDef subgraphLabel fill:none,stroke:none,color:#333333,font-weight:bold,font-size:36px;
+    classDef largeText fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+
+    %% Apply styles to nodes - make nodes larger with padding
+    class Title mainTitle
+    class Subtitle subtitle
+    class Footer footer
+    class BraveApp,WebSearch,DataProcessing,SearchResults,OutputDisplay applicationLayer
+    class UserQuery dataStores
+    class InputSpacer,ProcessingSpacer,OutputSpacer spacer
+    class InputLabel,ProcessingLabel,OutputLabel subgraphLabel
+
+    %% Style subgraphs - much larger text, stronger borders and more padding
+    style InputSources fill:#FCE7D1,stroke:#E67E22,stroke-width:4px,padding:40px
+    style ProcessingComponents fill:#AAD0F4,stroke:#2471A3,stroke-width:4px,padding:40px
+    style OutputComponents fill:#E8DAEF,stroke:#8E44AD,stroke-width:4px,padding:40px
+
+    %% Color coordinating labels with their subgraphs
+    style InputLabel color:#7D3C03
+    style ProcessingLabel color:#174E74
+    style OutputLabel color:#5B2C76
+
+    %% Make all nodes larger with padding
+    style User padding:20px,margin:30px
+    style BraveApp padding:20px,margin:30px
+    style WebSearch padding:20px,margin:25px
+    style DataProcessing padding:20px,margin:25px
+    style SearchResults padding:20px,margin:25px
+    style OutputDisplay padding:20px,margin:25px

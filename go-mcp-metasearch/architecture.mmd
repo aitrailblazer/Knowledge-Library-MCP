@@ -1,0 +1,104 @@
+flowchart TD
+    %% Main Title
+    Title["Go MCP Metasearch"]:::mainTitle
+    Subtitle["(Model Context Protocol)"]:::subtitle
+    Title --> Subtitle
+    
+    %% Labels for subgraphs - placed outside and above
+    ApplicationLayerLabel["Application Layer"]:::subgraphLabel
+    ServiceLayerLabel["Service Layer"]:::subgraphLabel
+    DataLayerLabel["Data Layer"]:::subgraphLabel
+    UserInterfaceLabel["User Interface"]:::subgraphLabel
+    
+    %% Add spacing between subgraphs
+    ApplicationLayerSpacer[ ]:::spacer
+    ServiceLayerSpacer[ ]:::spacer
+    DataLayerSpacer[ ]:::spacer
+    UILayerSpacer[ ]:::spacer
+    
+    %% Application Layer
+    ApplicationLayerLabel --- ApplicationLayerSpacer
+    subgraph ApplicationLayer[" "]
+        direction LR
+        MainApp["Main Application"]:::applicationLayer
+    end
+    
+    %% Service Layer
+    ApplicationLayer --- ServiceLayerSpacer
+    ServiceLayerLabel --- ServiceLayerSpacer
+    subgraph ServiceLayer[" "]
+        direction LR
+        SearchService["Search Service"]:::serviceLayer
+        MainApp -->|Calls| SearchService
+    end
+    
+    %% Data Layer
+    ServiceLayer --- DataLayerSpacer
+    DataLayerLabel --- DataLayerSpacer
+    subgraph DataLayer[" "]
+        direction LR
+        ExternalAPIs["External APIs"]:::externalComponents
+        Database[("Database")]:::dataStores
+        SearchService -->|Fetches Data| ExternalAPIs
+        SearchService -->|Queries| Database
+    end
+    
+    %% User Interface Layer
+    DataLayer --- UILayerSpacer
+    UserInterfaceLabel --- UILayerSpacer
+    subgraph UILayer[" "]
+        direction LR
+        UI["User Interface"]:::userInterfaceLayer
+        User((User)):::userNode
+        MainApp -->|Displays Results| UI
+        UI -->|Interacts| User
+    end
+    
+    %% Footer
+    Footer["Copyright© 2025 Knowledge Library MCP"]:::footer
+    
+    %% Enhanced styling with much larger text and better spacing
+    classDef default font-size:22px;
+    classDef mainTitle fill:none,stroke:none,color:#000000,font-weight:bold,font-size:48px;
+    classDef subtitle fill:none,stroke:none,color:#555555,font-weight:normal,font-size:24px;
+    classDef footer fill:none,stroke:none,color:#555555,font-weight:normal,font-size:20px;
+    classDef userNode fill:#E8F4FD,stroke:#2980B9,stroke-width:3px,color:#2C3E50,font-weight:bold,font-size:32px;
+    classDef applicationLayer fill:#5C9FDA,stroke:#2471A3,stroke-width:3px,color:white,font-weight:bold,font-size:32px;
+    classDef serviceLayer fill:#68B88E,stroke:#1E8449,stroke-width:3px,color:white,font-weight:bold,font-size:32px;
+    classDef dataStores fill:#F1C232,stroke:#B7950B,stroke-width:4px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef externalComponents fill:#A2D9CE,stroke:#16A085,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef userInterfaceLayer fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef spacer fill:none,stroke:none,color:none;
+    classDef subgraphLabel fill:none,stroke:none,color:#333333,font-weight:bold,font-size:36px;
+    
+    %% Apply styles to nodes - make nodes larger with padding
+    class Title mainTitle
+    class Subtitle subtitle
+    class Footer footer
+    class MainApp applicationLayer
+    class SearchService serviceLayer
+    class Database dataStores
+    class ExternalAPIs externalComponents
+    class UI userInterfaceLayer
+    class ApplicationLayerSpacer,ServiceLayerSpacer,DataLayerSpacer,UILayerSpacer spacer
+    class ApplicationLayerLabel,ServiceLayerLabel,DataLayerLabel,UserInterfaceLabel subgraphLabel
+    
+    %% Style subgraphs - much larger text, stronger borders and more padding
+    style ApplicationLayer fill:#AAD0F4,stroke:#2471A3,stroke-width:4px,padding:40px
+    style ServiceLayer fill:#D1F2DD,stroke:#1E8449,stroke-width:4px,padding:40px
+    style DataLayer fill:#D1F2EB,stroke:#16A085,stroke-width:4px,padding:40px
+    style UILayer fill:#FCE7D1,stroke:#E67E22,stroke-width:4px,padding:40px
+    
+    %% Color coordinating labels with their subgraphs
+    style ApplicationLayerLabel color:#174E74
+    style ServiceLayerLabel color:#104726
+    style DataLayerLabel color:#0B4B3A
+    style UserInterfaceLabel color:#7D3C03
+    
+    %% Make all nodes larger with padding
+    style MainApp padding:20px,margin:30px
+    style SearchService padding:20px,margin:30px
+    style ExternalAPIs padding:20px,margin:25px
+    style Database padding:20px,margin:25px
+    style UI padding:20px,margin:25px
+    style User padding:20px,margin:30px

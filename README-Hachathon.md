@@ -1,4 +1,6 @@
 #  Knowledge Library MCP—Azure AI Agent Service and MCP Powers Precision Querying 
+Azure Al Services Multi-Agent Multimodal - Speech, Vision, Text RAG Implementation
+leveraging Anthropic’s Model Context Protocol
 
 Knowledge Library MCP (KL MCP) is a multi-modal application leveraging Azure AI Agent Service to locate documents—text and images—and deliver conversational insights via bots. It enhances search with live data integration and Responsible AI principles, designed for scalable, professional-grade querying.  
 
