@@ -57,3 +57,164 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for more details.
+
+## How It Works
+
+The MCP Azure Server operates as a middleware between your applications and Azure AI services, providing a unified interface for AI-powered operations. Here's how it works:
+
+1. **Authentication Flow**:
+   - The server uses OAuth 2.0 for authentication with Azure services
+   - On first run, it initiates the authentication flow via `/auth/start`
+   - After successful authentication, tokens are stored in `tokens.json`
+   - Automatic token refresh happens in the background
+
+2. **Request Processing**:
+   - Incoming requests are validated and routed to appropriate handlers
+   - The server maintains session state for real-time interactions
+   - Requests are processed asynchronously for better performance
+
+3. **Integration with Azure Services**:
+   - Azure AI Projects for agent-based interactions
+   - Azure Document Intelligence for document processing
+   - Azure Vector Store for semantic search capabilities
+   - Microsoft Graph API for file access and management
+
+## Examples
+
+### 1. Adding Numbers Tool
+```json
+POST /mcp/tools/call
+{
+    "name": "add_numbers",
+    "arguments": {
+        "a": 5,
+        "b": 3
+    }
+}
+
+Response:
+{
+    "content": [
+        {
+            "type": "text",
+            "text": "Sum of 5 and 3 is 8",
+            "data": null
+        }
+    ],
+    "isError": false
+}
+```
+
+### 2. Stock Price Lookup
+```json
+POST /mcp/tools/call
+{
+    "name": "get_stock_prices",
+    "arguments": {
+        "ticker": "TSLA",
+        "interval": "1d",
+        "period": "1mo"
+    }
+}
+
+Response:
+{
+    "content": [
+        {
+            "type": "json",
+            "text": {
+                "ticker": "TSLA",
+                "interval": "1d",
+                "period": "1mo",
+                "prices": [
+                    {
+                        "timestamp": "2025-03-24 16:00:00",
+                        "close_price": 198.45
+                    },
+                    // ... more prices ...
+                ]
+            }
+        }
+    ],
+    "isError": false
+}
+```
+
+### 3. OneDrive File Listing
+```json
+POST /mcp/tools/call
+{
+    "name": "list_onedrive_root",
+    "arguments": {}
+}
+
+Response:
+{
+    "content": [
+        {
+            "type": "json",
+            "data": {
+                "items": [
+                    {
+                        "name": "Documents",
+                        "id": "12345...",
+                        "type": "folder"
+                    },
+                    // ... more items ...
+                ]
+            }
+        }
+    ],
+    "isError": false
+}
+```
+
+### 4. Natural Language Processing
+```json
+POST /mcp/process
+{
+    "text": "What is Tesla's stock price?"
+}
+
+Response:
+{
+    "content": "Based on the latest data, Tesla (TSLA) stock closed at $198.45. Here's a summary of recent price movements..."
+}
+```
+
+## API Reference
+
+### Authentication Endpoints
+- `GET /auth/start`: Initiates the OAuth flow
+- `GET /auth/callback`: OAuth callback handler
+
+### MCP Tool Endpoints
+- `GET /mcp/tools/list`: Lists available tools
+- `POST /mcp/tools/call`: Executes a specific tool
+- `POST /mcp/process`: Processes natural language requests
+
+### Health Check
+- `GET /health`: Returns server status and connections
+
+## Error Handling
+
+The server provides detailed error messages in a consistent format:
+
+```json
+{
+    "content": [
+        {
+            "type": "text",
+            "text": "Error description",
+            "data": null
+        }
+    ],
+    "isError": true
+}
+```
+
+Common error scenarios:
+- Authentication failures
+- Invalid tool parameters
+- Service unavailability
+- Rate limiting

@@ -161,7 +161,6 @@ The Knowledge Library MCP project leverages a diverse set of technologies to del
 
 The Knowledge Library MCP project also incorporates the following technologies:
 
-- **Cosmos DB NoSQL**: For managing metadata and enabling semantic searches.
 - **Microsoft Graph API**: For accessing and managing OneDrive documents.
 - **Azure Machine Learning**: For predictive insights and advanced analytics.
 - **GitHub Copilot**: For accelerating development and improving code quality.
