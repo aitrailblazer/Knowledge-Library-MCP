@@ -1,0 +1,73 @@
+Input Transcript: You said, "What is Apple?" Apple is a technology company known for its innovative products such as the iPhone, iPad, Mac computers, and the Apple Watch, as well as software like macOS and iOS. They also offer services like Apple Music and iCloud.
+Response Text: 
+
+Input Transcript: An apple is a fruit that is typically round, comes in various colors like red, green, or yellow, and has a sweet to tart flavor. Apples are commonly eaten fresh, used in cooking, or made into beverages like apple juice or cider.
+
+Hello! How can I assist you today? 
+Response Text: 
+
+Input Transcript: Hello! How can I help you today?
+Response Text: 
+
+Input Transcript: I think you might be asking about apples. They are a type of fruit that come from apple trees. Would you like more information about them?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: An apple is a type of fruit that comes from the apple tree. It's usually round, can be red, green, or yellow, and is known for being sweet or tart in flavor. Apples are popular for eating raw, cooking, and making beverages like cider. They are also associated with various cultural and symbolic meanings. 
+Response Text: 
+
+Input Transcript: Apple Inc. is a multinational technology company headquartered in Cupertino, California. It's known for designing, manufacturing, and marketing consumer electronics, software, and online services. Some of its most famous products include the iPhone, iPad, Mac computers, and the Apple Watch. The company also develops software like the macOS and iOS operating systems and offers services like iCloud and Apple Music.
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello there! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello there! How can I assist you with marketing consumer electronics, software, or online services today?
+Response Text: 
+
+Input Transcript: Hello! If you have any questions or need information, feel free to ask. How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: You mentioned macOS and iOS operating systems. Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can I help you today?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Kubernetes is an open-source platform designed to automate deploying, scaling, and operating application containers. It helps manage containerized applications across a cluster of machines, providing features like deployment, scaling, and management of applications.
+
+Hello! Nice to talk to you.
+Response Text: 
+
+Input Transcript: Hello there! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can I help you today?
+Response Text: 
+
+Input Transcript: TAPO stands for "Take A Pill Online," which is an initiative or service generally associated with online pharmacies where you can purchase medications over the internet. It's important to use reputable sources for any online medication purchases. How can I assist you further?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can I assist you today?
+Response Text: 
+
+Input Transcript: Hello! How can
+Response Text: 
+

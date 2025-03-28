@@ -1,0 +1,1397 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Azure
+@using Azure.AI.Projects
+@using Azure.Core
+@using Azure.Identity
+@using System.IO
+@using System.Linq
+@using Azure.AI.DocumentIntelligence
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using System.Text
+@using System.Net.Http
+@using System.Text.Json
+@using Markdig
+@inject IConfiguration Configuration
+@inject IJSRuntime JSRuntime
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Microsoft.JSInterop
+
+<PageTitle>Home</PageTitle>
+<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="@Horizontal" VerticalAlignment="@Vertical"
+             VerticalGap="1" Style="border: 1px dotted var(--accent-fill-rest); position: relative; padding-right: 50px;">
+@{
+    string userPrefix = Environment.GetEnvironmentVariable("USER_PREFIX") ?? "DefaultUser";
+}
+<h1 style="text-align: center; color: #0078D4;">Welcome, @userPrefix!</h1>
+<div style="text-align: center; margin-bottom: 20px;">
+    <img src="/img/KnowledgeLibraryMCPLogo.png" alt="Knowledge Library MCP Logo" width="1536px" />
+</div>
+    <FluentSplitter Orientation="Orientation.Horizontal" Panel1Size="768px" Style="height: 80vh; width: 2048px;">
+        <!-- Left Panel: Current Functionality -->
+        <Panel1>
+            <FluentCard Height="100%" Style="padding: 20px; overflow-y: auto;">
+                <FluentDivider></FluentDivider>
+                <h2 style="color: #0078D4;">File Upload</h2>
+                <FluentCard Height="auto" Style="padding: 20px;">
+                    <FluentInputFile @ref="@myFileUploader"
+                                    DragDropZoneVisible="false"
+                                    Mode="InputFileMode.SaveToTemporaryFolder"
+                                    Multiple="true"
+                                    AnchorId="MyUploadLoadingButton"
+                                    MaximumFileSize="@(100 * 1024 * 1024)"
+                                    Accept=".pdf,.doc,.docx,.txt,.png,.jpg,.mp4,.mov,.avi"
+                                    OnProgressChange="@(e =>
+                                        {
+                                            _formUploading = true;
+                                            progressPercent = e.ProgressPercent;
+                                            progressTitle = e.ProgressTitle;
+                                            StateHasChanged();
+                                        })"
+                                    OnCompleted="@OnCompleted" />
+
+                    <FluentProgress Min="0" Max="100" Visible="@(progressPercent > 0)" Value="@progressPercent" />
+                    <FluentLabel Alignment="HorizontalAlignment.Center">
+                        @progressTitle
+                    </FluentLabel>
+
+                    <FluentButton Id="MyUploadLoadingButton" Loading="_formUploading" Appearance="Appearance.Accent">
+                        Upload files
+                    </FluentButton>
+
+                    @if (Files.Any())
+                    {
+                        <h4>File(s) uploaded:</h4>
+                        <ul>
+                            @foreach (var file in Files)
+                            {
+                                <li>
+                                    <b>@file.Name</b> 🔹
+                                    @($"{Decimal.Divide(file.Size, 1024):N} KB") 🔹
+                                    @file.ContentType 🔹
+                                    @file.LocalFile?.FullName
+                                    @file.ErrorMessage
+                                </li>
+                            }
+                        </ul>
+                    }
+                </FluentCard>
+
+                @if (!string.IsNullOrEmpty(UploadStatus))
+                {
+                    <FluentCard Height="auto" Style="margin-top: 20px; padding: 20px; background-color: #f3f2f1;">
+                        <p>@UploadStatus</p>
+                    </FluentCard>
+                }
+
+                @if (isVectorStoreProcessing)
+                {
+                    <FluentCard Height="auto" Style="margin-top: 20px; padding: 20px; background-color: #f3f2f1;">
+                        <h4>Processing File</h4>
+                        <FluentProgress Min="0" Max="100" Value="@vectorStoreProgressValue" />
+                        <FluentLabel Alignment="HorizontalAlignment.Center">
+                            @vectorStoreProgressMessage
+                        </FluentLabel>
+                    </FluentCard>
+                }
+
+                @if (isAgentProcessing)
+                {
+                    <FluentCard Height="auto" Style="margin-top: 20px; padding: 20px; background-color: #f3f2f1;">
+                        <h4>Setting Up Agent</h4>
+                        <FluentProgress Min="0" Max="100" Value="@agentProgressValue" />
+                        <FluentLabel Alignment="HorizontalAlignment.Center">
+                            @agentProgressMessage
+                        </FluentLabel>
+                    </FluentCard>
+                }
+
+                @if (AgentResponse != null)
+                {
+                    <FluentCard Height="auto" Style="margin-top: 20px; padding: 20px; background-color: #f3f2f1;">
+                        <h3 style="color: #0078D4;">Agent Response:</h3>
+                        <p>@AgentResponse</p>
+                    </FluentCard>
+                }
+
+                @if (isInitializing)
+                {
+                    <FluentCard Height="auto" Style="margin-top: 20px; padding: 20px; background-color: #f3f2f1;">
+                        <h4>Initializing</h4>
+                        <FluentProgress Min="0" Max="100" Value="@initProgressValue" />
+                        <FluentLabel Alignment="HorizontalAlignment.Center">
+                            @initProgressMessage
+                        </FluentLabel>
+                    </FluentCard>
+                }
+
+                <FluentDivider></FluentDivider>
+
+                @if (UserVectorStores != null && UserVectorStores.Any())
+                {
+                    <h3 style="color: #0078D4;">Your Vector Stores</h3>
+                    <FluentListbox TOption="VectorStore" 
+                                Value="@SelectedVectorStore"
+                                ValueChanged="@(async (string? id) => await OnVectorStoreSelected(id))"
+                                OptionValue="@(vs => vs.Id)"
+                                OptionText="@(vs => vs.Name)">
+                        @foreach (var vectorStore in UserVectorStores)
+                        {
+                            <FluentOption Value="@vectorStore.Id" Selected="@(vectorStore.Id == SelectedVectorStore)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.Folder())" Slot="start" />
+                                @vectorStore.Name (@vectorStore.Id) - Created: @vectorStore.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+                            </FluentOption>
+                        }
+                    </FluentListbox>
+                    @if (SelectedVectorStore != null)
+                    {
+                        <FluentButton OnClick="async () => await DeleteVectorStore()" 
+                                    IconEnd="@(new Icons.Regular.Size16.Delete())"
+                                    Appearance="Appearance.Neutral">
+                            Delete Selected Vector Store
+                        </FluentButton>
+                    }
+                }
+
+                @if (SelectedVectorStore != null)
+                {
+                    <h3 style="color: #0078D4;">Chat with Vector Store</h3>
+                    <FluentCard Height="auto" Style="padding: 20px;">
+                        <textarea @bind="UserInput" placeholder="Enter your question here..." rows="4" cols="50" Style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+                        <br />
+                        <FluentButton OnClick="async () => await SubmitChat()" 
+                                    IconEnd="@(new Icons.Regular.Size16.Send())"
+                                    Appearance="Appearance.Accent">
+                            Submit
+                        </FluentButton>
+
+                        @if (GeneratedQuestions.Any())
+                        {
+                            <h4 style="margin-top: 20px; color: #0078D4;">Suggested Questions</h4>
+                            <FluentListbox TOption="string" 
+                                        Value="@SelectedQuestion"
+                                        ValueChanged="@(async (string? q) => await OnQuestionSelected(q))"
+                                        OptionText="@(q => q)">
+                                @foreach (var question in GeneratedQuestions)
+                                {
+                                    <FluentOption Value="@question">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.ChatSparkle())" Slot="start" />
+                                        @question
+                                    </FluentOption>
+                                }
+                            </FluentListbox>
+                        }
+
+                        @if (isChatProcessing)
+                        {
+                            <h4>Chat Processing Status</h4>
+                            <FluentProgress Min="0" Max="100" Value="@chatProgressValue" />
+                            <FluentLabel Typo="Typography.Subject" Color="@Color.Custom" CustomColor="#CC5500" Alignment="HorizontalAlignment.Center">
+                                @chatProgressMessage
+                            </FluentLabel>
+                        }
+                        @if (!string.IsNullOrEmpty(ChatResponse))
+                        {
+                            <div class="markdown-content" style="margin-top: 20px; border-left: 4px solid #0078D4; padding-left: 15px;">
+                                @((MarkupString)ConvertMarkdownToHtml(ChatResponse))
+                            </div>
+                        }
+                    </FluentCard>
+                }
+            </FluentCard>
+        </Panel1>
+
+        <!-- Right Panel: File Viewer -->
+        <Panel2>
+            <FluentCard Height="100%" Style="padding: 20px; overflow-y: auto;">
+                <h2 style="color: #0078D4;">File Viewer</h2>
+                @if (!string.IsNullOrEmpty(SelectedVectorStore))
+                {
+                    var selectedVectorStore = UserVectorStores.FirstOrDefault(vs => vs.Id == SelectedVectorStore);
+                    if (selectedVectorStore != null)
+                    {
+                        <h3>Viewing: @selectedVectorStore.Name</h3>
+                        string extension = Path.GetExtension(selectedVectorStore.Name).ToLower();
+                        string filePath = Path.Combine("wwwroot/uploads", selectedVectorStore.Name);
+                        string fileUrl = $"/uploads/{Uri.EscapeDataString(selectedVectorStore.Name)}";
+                        Console.WriteLine($"Right panel checking file for Vector Store ID: {selectedVectorStore.Id}, Path: {filePath}, URL: {fileUrl}, Extension: {extension}");
+                        Console.WriteLine($"File exists: {File.Exists(filePath)}");
+
+                        if (File.Exists(filePath))
+                        {
+                            switch (extension)
+                            {
+                                case ".pdf":
+                                    <iframe src="@fileUrl" 
+                                            width="100%" height="600px" style="border: none;"></iframe>
+                                    break;
+                                case ".png":
+                                case ".jpg":
+                                    <img src="@fileUrl" 
+                                         alt="Uploaded Image" style="max-width: 100%; height: auto;" />
+                                    break;
+                                case ".txt":
+                                    <pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; white-space: pre-wrap;">
+                                        @File.ReadAllText(filePath)
+                                    </pre>
+                                    break;
+                                default:
+                                    <p>Preview not available for this file type.</p>
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            <p>File content not available on disk at @filePath.</p>
+                            <pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
+                                @SelectedFileContent
+                            </pre>
+                        }
+                        <p><strong>ID:</strong> @selectedVectorStore.Id</p>
+                        <p><strong>Created:</strong> @selectedVectorStore.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</p>
+                    }
+                }
+                else
+                {
+                    <p>Select a vector store or upload a file to view its contents here.</p>
+                }
+            </FluentCard>
+        </Panel2>
+    </FluentSplitter>
+</FluentStack>
+
+@code {
+    string UploadStatus = string.Empty;
+    string? AgentResponse = null;
+    List<VectorStore> UserVectorStores = new();
+    string? SelectedVectorStore = null;
+    string UserInput = string.Empty;
+    string ChatResponse = string.Empty;
+    bool _formUploading = false;
+    bool isChatProcessing = false;
+    int chatProgressValue = 0;
+    string? chatProgressMessage = null;
+    
+    bool isVectorStoreProcessing = false;
+    int vectorStoreProgressValue = 0;
+    string? vectorStoreProgressMessage = string.Empty;
+    
+    bool isAgentProcessing = false;
+    int agentProgressValue = 0;
+    string? agentProgressMessage = string.Empty;
+    
+    bool isInitializing = false;
+    int initProgressValue = 0;
+    string? initProgressMessage = string.Empty;
+        
+    List<VectorStore> VectorStores = new();
+    Dictionary<string, (string ParentTool, Dictionary<string, object> Subtool)> mcpTools = new();
+    const float Temperature = 0.5f;
+    const float TopP = 0.9f;
+    Agent? CurrentAgent = null;
+
+    FluentInputFile? myFileUploader = default!;
+    int? progressPercent;
+    string? progressTitle;
+    FluentInputFileEventArgs[] Files = Array.Empty<FluentInputFileEventArgs>();
+
+    // File Viewer State
+    string? SelectedFileContent = null;
+    byte[]? SelectedFileBytes = null;
+
+    List<string> GeneratedQuestions = new();
+    string? SelectedQuestion = null;
+
+    static readonly HashSet<string> SupportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ".c", ".cpp", ".cs", ".css", ".doc", ".docx", ".go", ".html", ".java", ".js",
+        ".json", ".md", ".pdf", ".php", ".pptx", ".py", ".rb", ".sh", ".tex", ".ts", ".txt",
+        ".png", ".jpg", ".tiff", ".bmp", ".mp4", ".mov", ".avi"
+    };
+
+    static readonly HashSet<string> ImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ".png", ".jpg", ".tiff", ".bmp"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Initializing component...");
+        isInitializing = true;
+        UpdateProgress(ref isInitializing, ref initProgressValue, ref initProgressMessage, 10, "Loading application...");
+        
+        try
+        {
+            Directory.CreateDirectory("wwwroot/uploads");
+            UpdateProgress(ref isInitializing, ref initProgressValue, ref initProgressMessage, 30, "Fetching MCP tools...");
+            await FetchMcpToolsAsync();
+            
+            UpdateProgress(ref isInitializing, ref initProgressValue, ref initProgressMessage, 70, "Loading vector stores...");
+            await ListUserVectorStoresAsync();
+            
+            UpdateProgress(ref isInitializing, ref initProgressValue, ref initProgressMessage, 100, "Initialization complete");
+            Console.WriteLine("Component initialized.");
+        }
+        finally
+        {
+            await Task.Delay(500);
+            isInitializing = false;
+            StateHasChanged();
+        }
+    }
+
+    async Task OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        Files = files.ToArray();
+        progressPercent = myFileUploader!.ProgressPercent;
+        progressTitle = myFileUploader!.ProgressTitle;
+        _formUploading = false;
+
+        Console.WriteLine($"File upload completed. Processing {Files.Length} files...");
+        foreach (var file in Files)
+        {
+            await ProcessSingleFile(file);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task ProcessSingleFile(FluentInputFileEventArgs file)
+    {
+        Console.WriteLine($"Processing single file: {file.Name}");
+        try
+        {
+            UpdateProgress(ref isVectorStoreProcessing, ref vectorStoreProgressValue, ref vectorStoreProgressMessage, 25, $"Validating file '{file.Name}'...");
+            var (connectionString, originalFileName, renamedFilePath) = await PrepareFile(file);
+            Console.WriteLine($"Renamed file path: {renamedFilePath}");
+            var (companyTicker, formName, date, name) = ParseAndValidateFileName(originalFileName);
+
+            UpdateProgress(ref isVectorStoreProcessing, ref vectorStoreProgressValue, ref vectorStoreProgressMessage, 50, $"Initializing processing for '{originalFileName}'...");
+            var client = new AgentsClient(connectionString, new DefaultAzureCredential());
+            string userPrefix = Environment.GetEnvironmentVariable("USER_PREFIX") ?? "DefaultUser";
+            string vectorStoreName = $"{companyTicker}--{formName}--{date}--{name ?? ""}{Path.GetExtension(originalFileName).ToLower()}";
+            string agentName = $"{userPrefix}--{vectorStoreName}";
+            Console.WriteLine($"Agent Name: {agentName}, Vector Store Name: {vectorStoreName}");
+
+            // Handle image files: Generate markdown and save original file
+            string uploadFilePath = renamedFilePath; // Default to original file path
+            string markdownFilePath = null;
+            if (ImageExtensions.Contains(Path.GetExtension(renamedFilePath).ToLower()))
+            {
+                string markdownContent = await ExtractContentAsMarkdown(renamedFilePath);
+                string directory = Path.GetDirectoryName(renamedFilePath) ?? Directory.GetCurrentDirectory();
+                markdownFilePath = Path.Combine(directory, $"{Path.GetFileNameWithoutExtension(renamedFilePath)}_processed.md");
+                File.WriteAllText(markdownFilePath, markdownContent);
+                Console.WriteLine($"Markdown content extracted from file and saved to '{markdownFilePath}'. Verifying content...");
+                Console.WriteLine($"Markdown content preview: {(markdownContent.Length > 100 ? markdownContent.Substring(0, 100) + "..." : markdownContent)}");
+                SelectedFileContent = markdownContent; // For vector store preview
+                uploadFilePath = markdownFilePath; // Use markdown file for vectorization
+            }
+
+            UpdateProgress(ref isVectorStoreProcessing, ref vectorStoreProgressValue, ref vectorStoreProgressMessage, 75, $"Creating resources for '{originalFileName}'...");
+            VectorStore vectorStore = await GetOrCreateVectorStoreAsync(client, uploadFilePath, vectorStoreName)
+                ?? throw new InvalidOperationException($"Vector store creation failed for '{originalFileName}'.");
+            Agent agent = await GetOrCreateAgentAsync(client, vectorStore, agentName, companyTicker, formName, vectorStoreName, date)
+                ?? throw new InvalidOperationException($"Agent creation failed for '{originalFileName}'.");
+
+            UpdateProgress(ref isVectorStoreProcessing, ref vectorStoreProgressValue, ref vectorStoreProgressMessage, 100, "Processing completed successfully.");
+            Console.WriteLine($"Agent created - Name: {agent.Name}, ID: {agent.Id}");
+            UploadStatus = $"File '{originalFileName}' processed successfully.\n- Vector Store Name: {vectorStore.Name}\n- ID: {vectorStore.Id}\n- Created: {vectorStore.CreatedAt:yyyy-MM-dd HH:mm:ss}";
+            AgentResponse = $"Agent '{agent.Name}' is ready to process queries based on the uploaded file.";
+            SelectedVectorStore = vectorStore.Id;
+            CurrentAgent = agent;
+
+            string extension = Path.GetExtension(originalFileName).ToLower();
+            Console.WriteLine($"File extension: {extension}");
+            if (!File.Exists(renamedFilePath))
+            {
+                Console.WriteLine($"File not found at: {renamedFilePath}");
+                throw new FileNotFoundException("Renamed file not found.", renamedFilePath);
+            }
+            byte[] fileBytes = File.ReadAllBytes(renamedFilePath); // Read original file bytes
+            Console.WriteLine($"Read {fileBytes.Length} bytes from {renamedFilePath}");
+
+            // Save the original file (e.g., .png) to wwwroot/uploads for viewing
+            string storedFilePath = Path.Combine("wwwroot/uploads", vectorStoreName); // Use vectorStoreName for consistency
+            Console.WriteLine($"Attempting to save original file to: {storedFilePath}");
+            try
+            {
+                Directory.CreateDirectory("wwwroot/uploads");
+                File.WriteAllBytes(storedFilePath, fileBytes); // Save original .png file
+                Console.WriteLine($"Original file successfully saved to: {storedFilePath}, Length: {fileBytes.Length}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to save file to {storedFilePath}: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                throw;
+            }
+            SelectedFileBytes = fileBytes;
+
+            // Set preview content based on file type
+            switch (extension)
+            {
+                case ".png":
+                case ".jpg":
+                    SelectedFileContent = "Image content loaded (see below)"; // Display original image
+                    Console.WriteLine("Image content set for display.");
+                    break;
+                case ".pdf":
+                    SelectedFileContent = "PDF content loaded (see embedded view below)";
+                    Console.WriteLine("PDF content set for display.");
+                    break;
+                case ".txt":
+                    SelectedFileContent = File.ReadAllText(renamedFilePath);
+                    Console.WriteLine($"Text content set: {SelectedFileContent.Substring(0, Math.Min(100, SelectedFileContent.Length))}...");
+                    break;
+                default:
+                    SelectedFileContent = "Preview not available for this file type.";
+                    Console.WriteLine("Default content set for unsupported type.");
+                    break;
+            }
+
+            Console.WriteLine($"Agent assigned to CurrentAgent - Name: {agent.Name}, ID: {agent.Id}");
+            await RefreshVectorStoresAsync();
+            Console.WriteLine("Vector stores refreshed.");
+            await Task.Delay(1000);
+        }
+        catch (Exception ex)
+        {
+            UploadStatus = $"Error processing file '{file.Name}': {ex.Message}";
+            Console.WriteLine($"Error in file upload: {ex.Message}\nStack Trace: {ex.StackTrace}");
+            UpdateProgress(ref isVectorStoreProcessing, ref vectorStoreProgressValue, ref vectorStoreProgressMessage, 0, null);
+            isAgentProcessing = false;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    async Task<(string connectionString, string originalFileName, string renamedFilePath)> PrepareFile(FluentInputFileEventArgs file)
+    {
+        var connectionString = Configuration["AIPROJECT_CONNECTION_STRING"];
+        if (string.IsNullOrEmpty(connectionString))
+            throw new InvalidOperationException("AIPROJECT_CONNECTION_STRING environment variable not set.");
+
+        string originalFileName = file.Name;
+        string filePath = file.LocalFile?.FullName ?? throw new InvalidOperationException($"Uploaded file '{originalFileName}' does not exist.");
+        if (!File.Exists(filePath))
+            throw new InvalidOperationException($"File does not exist at path: {filePath}");
+
+        string renamedFilePath = Path.Combine(Path.GetDirectoryName(filePath)!, originalFileName);
+        if (!File.Exists(renamedFilePath))
+        {
+            File.Move(filePath, renamedFilePath);
+            Console.WriteLine($"File moved to: {renamedFilePath}");
+        }
+
+        string extension = Path.GetExtension(originalFileName).ToLower();
+        if (!SupportedExtensions.Contains(extension))
+            throw new InvalidOperationException($"File extension '{extension}' is not supported for '{originalFileName}'.");
+
+        return (connectionString, originalFileName, renamedFilePath);
+    }
+
+    (string? companyTicker, string? formName, string? date, string? name) ParseAndValidateFileName(string fileName)
+    {
+        var (companyTicker, formName, date, name) = ParseFileName(fileName);
+        if (companyTicker == null || formName == null || date == null)
+            throw new InvalidOperationException($"Invalid filename format for '{fileName}'. Expected format: <ticker>--<form>--<date>-<optional_elements>.<extension>");
+        Console.WriteLine($"Parsed filename - Ticker: {companyTicker}, Form: {formName}, Date: {date}, Name: {name ?? ""}");
+        return (companyTicker, formName, date, name);
+    }
+
+    void UpdateProgress(ref bool isProcessing, ref int progressValue, ref string? progressMessage, int value, string? message)
+    {
+        isProcessing = value > 0 && value < 100;
+        progressValue = value;
+        progressMessage = message;
+        if (isProcessing && value >= 75)
+        {
+            isAgentProcessing = true;
+            agentProgressValue = value;
+            agentProgressMessage = message;
+        }
+        else
+        {
+            isAgentProcessing = false;
+            agentProgressValue = 0;
+            agentProgressMessage = null;
+        }
+        StateHasChanged();
+    }
+
+    void UpdateChatProgress(int value, string? message)
+    {
+        isChatProcessing = value > 0 && value < 100;
+        chatProgressValue = value;
+        chatProgressMessage = message;
+        StateHasChanged();
+    }
+
+    async Task FetchMcpToolsAsync()
+    {
+        Console.WriteLine("Fetching MCP tools...");
+        using var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8080/") };
+        try
+        {
+            var toolsResponse = await httpClient.GetStringAsync("/tools");
+            var toolsData = JsonSerializer.Deserialize<Dictionary<string, List<Dictionary<string, object>>>>(toolsResponse);
+            if (toolsData != null && toolsData.TryGetValue("tools", out var tools))
+            {
+                foreach (var tool in tools)
+                {
+                    var parentToolName = tool["name"]?.ToString();
+                    if (string.IsNullOrEmpty(parentToolName)) continue;
+                    var subtools = tool["subtools"] as List<object>;
+                    if (subtools != null)
+                    {
+                        foreach (var subtool in subtools)
+                        {
+                            var st = subtool as Dictionary<string, object>;
+                            if (st != null && st.TryGetValue("name", out var nameObj))
+                            {
+                                var subtoolName = nameObj?.ToString();
+                                if (string.IsNullOrEmpty(subtoolName)) continue;
+                                var mappedName = subtoolName switch
+                                {
+                                    "BraveSearch" => "brave_web_search",
+                                    "YahooStockPrice" => "yahoo_stock_price",
+                                    _ => subtoolName.ToLower().Replace(" ", "_")
+                                };
+                                mcpTools[mappedName] = (parentToolName, st);
+                                Console.WriteLine($"Added MCP tool: {mappedName}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            UploadStatus = $"Warning: Could not fetch MCP tools from /tools: {ex.Message}. Proceeding without MCP tools.";
+            Console.WriteLine($"Error fetching MCP tools: {ex.Message}");
+        }
+    }
+
+    async Task ListUserVectorStoresAsync()
+    {
+        Console.WriteLine("Listing user vector stores...");
+        try
+        {
+            await RefreshVectorStoresAsync();
+        }
+        catch (Exception ex)
+        {
+            UploadStatus = $"Error listing vector stores: {ex.Message}";
+            Console.WriteLine($"Error listing vector stores: {ex.Message}");
+        }
+    }
+
+    async Task RefreshVectorStoresAsync()
+    {
+        Console.WriteLine("Refreshing vector stores...");
+        try
+        {
+            var connectionString = Configuration["AIPROJECT_CONNECTION_STRING"];
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                UploadStatus = "Error: AIPROJECT_CONNECTION_STRING environment variable not set.";
+                Console.WriteLine("AIPROJECT_CONNECTION_STRING not set.");
+                return;
+            }
+
+            var client = new AgentsClient(connectionString, new DefaultAzureCredential());
+            var vectorStoresResponse = await client.GetVectorStoresAsync();
+            if (vectorStoresResponse?.Value == null || !vectorStoresResponse.Value.Data.Any())
+            {
+                UploadStatus = "No vector stores found in Azure.";
+                UserVectorStores = new List<VectorStore>();
+                return;
+            }
+
+            UserVectorStores = vectorStoresResponse.Value.Data.ToList();
+            UploadStatus = "Vector stores refreshed successfully.";
+            Console.WriteLine($"Vector stores refreshed. Count: {UserVectorStores.Count}");
+        }
+        catch (Exception ex)
+        {
+            UploadStatus = $"Error refreshing vector stores: {ex.Message}";
+            Console.WriteLine($"Error refreshing vector stores: {ex.Message}");
+        }
+    }
+
+    async Task OnVectorStoreSelected(string? id)
+    {
+        Console.WriteLine($"Vector store selected: {id}");
+        if (string.IsNullOrEmpty(id))
+        {
+            UploadStatus = "No vector store selected.";
+            SelectedVectorStore = null;
+            CurrentAgent = null;
+            ChatResponse = "No vector store selected. Cleared agent and chat.";
+            SelectedFileContent = null;
+            SelectedFileBytes = null;
+            GeneratedQuestions.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        AgentResponse = null;
+        SelectedVectorStore = id;
+        Console.WriteLine($"Assigned SelectedVectorStore: {SelectedVectorStore}");
+        var selectedVectorStore = UserVectorStores.FirstOrDefault(vs => vs.Id == id);
+        if (selectedVectorStore != null)
+        {
+            UploadStatus = $"Selected Vector Store:\n- Name: {selectedVectorStore.Name}\n- ID: {selectedVectorStore.Id}\n- Created: {selectedVectorStore.CreatedAt:yyyy-MM-dd HH:mm:ss}";
+            Console.WriteLine($"Selected vector store details - Name: {selectedVectorStore.Name}, ID: {selectedVectorStore.Id}");
+
+            string filePath = Path.Combine("wwwroot/uploads", selectedVectorStore.Name);
+            if (File.Exists(filePath))
+            {
+                SelectedFileBytes = File.ReadAllBytes(filePath);
+                Console.WriteLine($"Loaded file from {filePath}, Length: {SelectedFileBytes.Length}");
+                string extension = Path.GetExtension(selectedVectorStore.Name).ToLower();
+                switch (extension)
+                {
+                    case ".pdf":
+                        SelectedFileContent = "PDF content loaded (see embedded view below)";
+                        break;
+                    case ".png":
+                    case ".jpg":
+                        SelectedFileContent = "Image content loaded (see below)";
+                        break;
+                    case ".txt":
+                        SelectedFileContent = File.ReadAllText(filePath);
+                        break;
+                    default:
+                        SelectedFileContent = "Preview not available for this file type.";
+                        break;
+                }
+            }
+            else
+            {
+                SelectedFileContent = $"Metadata for {selectedVectorStore.Name}:\nID: {selectedVectorStore.Id}\nCreated: {selectedVectorStore.CreatedAt:yyyy-MM-dd HH:mm:ss}";
+                SelectedFileBytes = null;
+                Console.WriteLine($"No file found at: {filePath}");
+            }
+
+            var parsedVectorStoreName = ParseVectorStoreName(selectedVectorStore.Name);
+            if (parsedVectorStoreName.companyTicker != null && parsedVectorStoreName.formName != null && parsedVectorStoreName.date != null)
+            {
+                try
+                {
+                    var connectionString = Configuration["AIPROJECT_CONNECTION_STRING"];
+                    if (string.IsNullOrEmpty(connectionString))
+                        throw new InvalidOperationException("AIPROJECT_CONNECTION_STRING not set.");
+
+                    var client = new AgentsClient(connectionString, new DefaultAzureCredential());
+                    string userPrefix = Environment.GetEnvironmentVariable("USER_PREFIX") ?? "DefaultUser";
+                    string agentName = $"{userPrefix}--{selectedVectorStore.Name}";
+                    Console.WriteLine($"Creating agent for vector store. Agent Name: {agentName}");
+
+                    CurrentAgent = await GetOrCreateAgentAsync(
+                        client,
+                        selectedVectorStore,
+                        agentName,
+                        parsedVectorStoreName.companyTicker,
+                        parsedVectorStoreName.formName,
+                        selectedVectorStore.Name,
+                        parsedVectorStoreName.date
+                    );
+
+                    if (CurrentAgent == null)
+                    {
+                        Console.WriteLine("Agent creation returned null unexpectedly.");
+                        UploadStatus = "Error: Agent creation failed.";
+                        return;
+                    }
+
+                    Console.WriteLine($"Agent created and assigned - Name: {CurrentAgent.Name}, ID: {CurrentAgent.Id}");
+                    AgentResponse = $"Agent '{CurrentAgent.Name}' is ready to process queries.";
+
+                    UpdateChatProgress(25, "Preparing to describe Table of Contents...");
+                    var threadResponse = await client.CreateThreadAsync()
+                        ?? throw new InvalidOperationException("Failed to create thread.");
+                    var thread = threadResponse.Value;
+                    Console.WriteLine($"Thread created - ID: {thread.Id}");
+
+                    var messageResponse = await client.CreateMessageAsync(thread.Id, MessageRole.User, "Describe Table of Content")
+                        ?? throw new InvalidOperationException("Failed to create message.");
+                    Console.WriteLine("Message 'Describe Table of Content' sent to thread.");
+
+                    string additionalInstructions = $"You are a financial analysis agent. Provide a detailed description of the Table of Contents from the vector store '{selectedVectorStore.Name}'. Answer in Markdown format.";
+                    UpdateChatProgress(50, "Processing Table of Contents description...");
+
+                    var runResponse = await client.CreateRunAsync(
+                        threadId: thread.Id,
+                        assistantId: CurrentAgent.Id,
+                        additionalInstructions: additionalInstructions,
+                        temperature: Temperature,
+                        topP: TopP
+                    ) ?? throw new InvalidOperationException("Failed to start run.");
+                    var run = runResponse.Value;
+                    Console.WriteLine($"Run started - ID: {run.Id}");
+
+                    do
+                    {
+                        await Task.Delay(500);
+                        runResponse = await client.GetRunAsync(thread.Id, run.Id)
+                            ?? throw new InvalidOperationException("Failed to get run status.");
+                        run = runResponse.Value;
+                        Console.WriteLine($"Run status: {run.Status}");
+                    } while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress);
+
+                    if (run.Status != RunStatus.Completed)
+                        throw new InvalidOperationException($"Run failed with status: {run.Status}");
+
+                    UpdateChatProgress(75, "Retrieving Table of Contents description...");
+                    var messagesResponse = await client.GetMessagesAsync(thread.Id)
+                        ?? throw new InvalidOperationException("Failed to retrieve messages.");
+                    var messages = messagesResponse.Value.Data;
+
+                    var assistantMessage = messages
+                        .Where(m => m.Role.ToString().Equals("assistant", StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(m => m.CreatedAt)
+                        .FirstOrDefault();
+
+                    ChatResponse = assistantMessage != null
+                        ? assistantMessage.ContentItems.OfType<MessageTextContent>().FirstOrDefault()?.Text ?? "No Table of Contents description available."
+                        : "No Table of Contents description available.";
+                    Console.WriteLine($"Table of Contents description: {ChatResponse}");
+
+                    UpdateChatProgress(100, "Table of Contents description retrieved.");
+                    GeneratedQuestions = GenerateQuestionsFromToc(ChatResponse);
+                    Console.WriteLine($"Generated {GeneratedQuestions.Count} questions based on Table of Contents.");
+                }
+                catch (Exception ex)
+                {
+                    UploadStatus = $"Error processing vector store selection: {ex.Message}";
+                    Console.WriteLine($"Error: {ex.Message}\nStack Trace: {ex.StackTrace}");
+                    CurrentAgent = null;
+                    ChatResponse = $"Error: {ex.Message}";
+                    GeneratedQuestions.Clear();
+                }
+                finally
+                {
+                    isChatProcessing = false;
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                UploadStatus = "Error: Invalid vector store name format.";
+                CurrentAgent = null;
+                ChatResponse = "Error: Invalid vector store name format.";
+                SelectedFileContent = null;
+                SelectedFileBytes = null;
+                GeneratedQuestions.Clear();
+            }
+        }
+        else
+        {
+            UploadStatus = "Error: Selected vector store not found.";
+            CurrentAgent = null;
+            ChatResponse = "Error: Vector store not found.";
+            SelectedFileContent = null;
+            SelectedFileBytes = null;
+            GeneratedQuestions.Clear();
+        }
+        StateHasChanged();
+    }
+
+    async Task SubmitChat()
+    {
+        Console.WriteLine("Submitting chat...");
+        try
+        {
+            UpdateChatProgress(25, "Validating chat input...");
+            if (string.IsNullOrWhiteSpace(UserInput))
+                throw new InvalidOperationException("Please enter a valid question.");
+            if (string.IsNullOrEmpty(SelectedVectorStore))
+                throw new InvalidOperationException("No vector store selected.");
+            var connectionString = Configuration["AIPROJECT_CONNECTION_STRING"];
+            if (string.IsNullOrEmpty(connectionString))
+                throw new InvalidOperationException("AIPROJECT_CONNECTION_STRING environment variable not set.");
+
+            var client = new AgentsClient(connectionString, new DefaultAzureCredential());
+            var vectorStore = UserVectorStores.FirstOrDefault(vs => vs.Id == SelectedVectorStore)
+                ?? throw new InvalidOperationException("Selected vector store not found.");
+            if (CurrentAgent == null)
+                throw new InvalidOperationException("No agent available for the selected vector store.");
+
+            UpdateChatProgress(50, "Preparing chat thread and message...");
+            using var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8080/") };
+            var threadResponse = await client.CreateThreadAsync()
+                ?? throw new InvalidOperationException("Failed to create thread.");
+            var thread = threadResponse.Value;
+            Console.WriteLine($"Thread created - ID: {thread.Id}");
+
+            var messageResponse = await client.CreateMessageAsync(thread.Id, MessageRole.User, UserInput)
+                ?? throw new InvalidOperationException("Failed to create message.");
+            Console.WriteLine("Message sent to thread.");
+
+            var parsedVectorStoreName = ParseVectorStoreName(vectorStore.Name);
+            string companyTicker = parsedVectorStoreName.companyTicker ?? "";
+            string formName = parsedVectorStoreName.formName ?? "";
+            string date = parsedVectorStoreName.date ?? "";
+            string additionalInstructions = $"You are a financial analysis agent. For any query asking for the current stock price (e.g., '{companyTicker} stock price today'), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke with the ticker '{companyTicker}' unless another ticker is specified. For historical data, prioritize the vector store '{vectorStore.Name}' from the {companyTicker} {formName} filing dated {date}. Discover tools at http://localhost:8080/tools. Answer in Markdown format.";
+            Console.WriteLine("Additional instructions prepared.");
+
+            UpdateChatProgress(75, "Processing query with agent...");
+            var runResponse = await client.CreateRunAsync(
+                threadId: thread.Id,
+                assistantId: CurrentAgent.Id,
+                additionalInstructions: additionalInstructions,
+                temperature: Temperature,
+                topP: TopP
+            ) ?? throw new InvalidOperationException("Failed to start run.");
+            var run = runResponse.Value;
+            Console.WriteLine($"Run started - ID: {run.Id}");
+
+            do
+            {
+                await Task.Delay(500);
+                runResponse = await client.GetRunAsync(thread.Id, run.Id)
+                    ?? throw new InvalidOperationException("Failed to get run status.");
+                run = runResponse.Value;
+                Console.WriteLine($"Run status: {run.Status}");
+
+                if (run.Status == RunStatus.RequiresAction && run.RequiredActions != null)
+                {
+                    Console.WriteLine("Run requires action.");
+                    foreach (var action in run.RequiredActions)
+                    {
+                        var toolCall = action as RequiredFunctionToolCall;
+                        if (toolCall == null)
+                        {
+                            ChatResponse = "Warning: Action is not a function tool call. Skipping.";
+                            Console.WriteLine("Action is not a function tool call.");
+                            continue;
+                        }
+
+                        if (!mcpTools.ContainsKey(toolCall.Name))
+                        {
+                            ChatResponse = $"Error: Tool '{toolCall.Name}' not found in MCP capabilities.";
+                            Console.WriteLine($"Tool '{toolCall.Name}' not found.");
+                            continue;
+                        }
+
+                        var (parentTool, subtool) = mcpTools[toolCall.Name];
+                        var parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(toolCall.Arguments) ?? new Dictionary<string, string>();
+                        Console.WriteLine($"Tool call - Name: {toolCall.Name}, Arguments: {toolCall.Arguments}");
+
+                        var mcpPayload = new
+                        {
+                            tool = parentTool,
+                            parameters = new Dictionary<string, object> { { "operation", subtool["name"] } }
+                        };
+
+                        foreach (var param in parameters)
+                        {
+                            mcpPayload.parameters[param.Key] = param.Value;
+                        }
+
+                        if (toolCall.Name == "yahoo_stock_price")
+                        {
+                            if (!parameters.ContainsKey("ticker")) mcpPayload.parameters["ticker"] = companyTicker;
+                            if (!parameters.ContainsKey("interval")) mcpPayload.parameters["interval"] = "1d";
+                            if (!parameters.ContainsKey("period")) mcpPayload.parameters["period"] = "1d";
+                            Console.WriteLine("Adjusted yahoo_stock_price parameters.");
+                        }
+
+                        var payloadJson = JsonSerializer.Serialize(mcpPayload);
+                        Console.WriteLine($"Sending MCP payload: {payloadJson}");
+                        var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+                        var mcpResponse = await httpClient.PostAsync("invoke", content);
+                        var mcpResult = await mcpResponse.Content.ReadAsStringAsync();
+                        Console.WriteLine($"MCP response - Status: {mcpResponse.StatusCode}, Result: {mcpResult}");
+
+                        string? toolResult = null;
+                        if (mcpResponse.IsSuccessStatusCode)
+                        {
+                            var resultDict = JsonSerializer.Deserialize<Dictionary<string, string>>(mcpResult);
+                            toolResult = resultDict?.ContainsKey("result") == true ? resultDict["result"] : mcpResult;
+                            Console.WriteLine($"Tool result: {toolResult}");
+                        }
+                        else
+                        {
+                            ChatResponse = $"Error: MCP request failed with status {mcpResponse.StatusCode}";
+                            Console.WriteLine($"MCP request failed: {mcpResponse.StatusCode}");
+                        }
+
+                        if (toolResult != null)
+                        {
+                            await client.SubmitToolOutputsToRunAsync(run, new List<ToolOutput> { new ToolOutput(toolCall.Id, toolResult) });
+                            Console.WriteLine($"Submitted tool output for call ID: {toolCall.Id}");
+                        }
+                        else
+                        {
+                            await client.SubmitToolOutputsToRunAsync(run, new List<ToolOutput> { new ToolOutput(toolCall.Id, "Error: Unable to fetch data") });
+                            Console.WriteLine("Submitted error output due to null tool result.");
+                        }
+                    }
+                }
+            } while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress || run.Status == RunStatus.RequiresAction);
+
+            if (run.Status != RunStatus.Completed)
+                throw new InvalidOperationException($"Run failed with status: {run.Status}");
+
+            UpdateChatProgress(100, "Retrieving chat response...");
+            var messagesResponse = await client.GetMessagesAsync(thread.Id)
+                ?? throw new InvalidOperationException("Failed to retrieve messages.");
+            var messages = messagesResponse.Value.Data;
+            Console.WriteLine($"Messages retrieved. Count: {messages.Count}");
+
+            var assistantMessage = messages
+                .Where(m => m.Role.ToString().Equals("assistant", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(m => m.CreatedAt)
+                .FirstOrDefault();
+
+            ChatResponse = assistantMessage != null
+                ? assistantMessage.ContentItems.OfType<MessageTextContent>().FirstOrDefault()?.Text ?? "No response from the assistant."
+                : "No response from the assistant.";
+            Console.WriteLine($"Chat response: {ChatResponse}");
+        }
+        catch (Exception ex)
+        {
+            ChatResponse = $"Error in chat: {ex.Message}";
+            Console.WriteLine($"Error in chat: {ex.Message}");
+            UpdateChatProgress(0, null);
+        }
+        finally
+        {
+            isChatProcessing = false;
+            StateHasChanged();
+            Console.WriteLine("Chat submission completed.");
+        }
+    }
+
+    async Task DeleteVectorStore()
+    {
+        Console.WriteLine($"Deleting vector store: {SelectedVectorStore}");
+        if (string.IsNullOrEmpty(SelectedVectorStore))
+        {
+            UploadStatus = "Error: No vector store selected to delete.";
+            Console.WriteLine("No vector store selected for deletion.");
+            return;
+        }
+
+        var connectionString = Configuration["AIPROJECT_CONNECTION_STRING"];
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            UploadStatus = "Error: AIPROJECT_CONNECTION_STRING environment variable not set.";
+            Console.WriteLine("AIPROJECT_CONNECTION_STRING not set.");
+            return;
+        }
+
+        try
+        {
+            var client = new AgentsClient(connectionString, new DefaultAzureCredential());
+            var vectorStore = UserVectorStores.FirstOrDefault(vs => vs.Id == SelectedVectorStore);
+            if (vectorStore == null)
+            {
+                UploadStatus = "Error: Selected vector store not found.";
+                Console.WriteLine("Vector store not found in list.");
+                return;
+            }
+
+            string vectorStoreIdToDelete = SelectedVectorStore;
+            string vectorStoreName = vectorStore.Name;
+            string filePath = Path.Combine("wwwroot/uploads", vectorStoreName);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                Console.WriteLine($"Deleted file at: {filePath}");
+            }
+
+            SelectedVectorStore = null;
+            CurrentAgent = null;
+            ChatResponse = string.Empty;
+            SelectedFileContent = null;
+            SelectedFileBytes = null;
+            GeneratedQuestions.Clear();
+
+            if (CurrentAgent != null)
+            {
+                Console.WriteLine($"Attempting to delete agent - Name: {CurrentAgent.Name}, ID: {CurrentAgent.Id}");
+                await client.DeleteAgentAsync(CurrentAgent.Id);
+                Console.WriteLine($"Agent deleted successfully - ID: {CurrentAgent.Id}");
+            }
+            else
+            {
+                Console.WriteLine("No agent associated with the selected vector store to delete.");
+            }
+
+            Console.WriteLine($"Attempting to delete vector store - Name: {vectorStoreName}, ID: {vectorStoreIdToDelete}");
+            await client.DeleteVectorStoreAsync(vectorStoreIdToDelete);
+            Console.WriteLine($"Vector store deleted successfully - ID: {vectorStoreIdToDelete}");
+
+            UserVectorStores.Remove(vectorStore);
+            VectorStores.Remove(vectorStore);
+            UploadStatus = $"Vector store '{vectorStoreName}' and its agent deleted successfully.";
+            Console.WriteLine($"Vector store and agent removed from local lists. New count: {UserVectorStores.Count}");
+        }
+        catch (Exception ex)
+        {
+            UploadStatus = $"Error deleting vector store or agent: {ex.Message}";
+            Console.WriteLine($"Error deleting vector store or agent: {ex.Message}\nStack Trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            StateHasChanged();
+            Console.WriteLine("Vector store and agent deletion process completed.");
+        }
+    }
+
+    async Task<VectorStore> GetOrCreateVectorStoreAsync(AgentsClient client, string filePath, string vectorStoreName)
+    {
+        Console.WriteLine($"Checking if vector store '{vectorStoreName}' exists in Azure...");
+        VectorStore? existingVectorStore = null;
+        try
+        {
+            var vectorStoresResponse = await client.GetVectorStoresAsync();
+            if (vectorStoresResponse?.Value == null)
+                throw new InvalidOperationException("Failed to retrieve vector stores.");
+            existingVectorStore = vectorStoresResponse.Value.Data.FirstOrDefault(v => v.Name == vectorStoreName);
+            if (existingVectorStore != null)
+            {
+                Console.WriteLine($"Vector store '{vectorStoreName}' already exists with ID: {existingVectorStore.Id}. Using it as is.");
+                return existingVectorStore;
+            }
+            Console.WriteLine($"Vector store '{vectorStoreName}' does not exist. Proceeding to create it.");
+        }
+        catch (NotSupportedException ex)
+        {
+            Console.WriteLine("Vector store listing not supported; proceeding with creation: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking vector stores; proceeding with creation: {ex.Message}");
+        }
+
+        string uploadFilePath = filePath;
+        if (ImageExtensions.Contains(Path.GetExtension(filePath).ToLower()))
+        {
+            string markdownContent = await ExtractContentAsMarkdown(filePath);
+            string directory = Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
+            uploadFilePath = Path.Combine(directory, $"{Path.GetFileNameWithoutExtension(filePath)}_processed.md");
+            File.WriteAllText(uploadFilePath, markdownContent);
+            Console.WriteLine($"Markdown content extracted from file and saved to '{uploadFilePath}'. Verifying content...");
+            Console.WriteLine($"Markdown content preview: {(markdownContent.Length > 100 ? markdownContent.Substring(0, 100) + "..." : markdownContent)}");
+            SelectedFileContent = markdownContent;
+        }
+        else
+        {
+            SelectedFileContent = "File content preview not available for this type.";
+        }
+
+        Console.WriteLine($"Uploading file '{uploadFilePath}'...");
+        Azure.Response<AgentFile> uploadAgentFileResponse = await client.UploadFileAsync(filePath: uploadFilePath, purpose: AgentFilePurpose.Agents);
+        if (uploadAgentFileResponse?.Value == null)
+            throw new InvalidOperationException($"Failed to upload file '{uploadFilePath}'.");
+
+        AgentFile uploadedAgentFile = uploadAgentFileResponse.Value;
+        Console.WriteLine($"File uploaded successfully with ID: {uploadedAgentFile.Id}");
+
+        Console.WriteLine($"Creating vector store '{vectorStoreName}' with file ID: {uploadedAgentFile.Id}...");
+        Azure.Response<VectorStore> vectorStoreResponseCreate = await client.CreateVectorStoreAsync(fileIds: new List<string> { uploadedAgentFile.Id }, name: vectorStoreName);
+        if (vectorStoreResponseCreate?.Value == null)
+            throw new InvalidOperationException("Failed to create vector store.");
+
+        VectorStore vectorStore = vectorStoreResponseCreate.Value;
+        Console.WriteLine($"Vector store created with ID: {vectorStore.Id}");
+        return vectorStore;
+    }
+
+    async Task<string> ExtractContentAsMarkdown(string filePath)
+    {
+        Console.WriteLine($"Extracting markdown from file: {filePath}");
+        var endpoint = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_ENDPOINT");
+        var apiKey = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_API_KEY");
+        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
+            throw new InvalidOperationException("Document Intelligence endpoint or API key not set in environment variables.");
+
+        var credential = new Azure.AzureKeyCredential(apiKey);
+        var client = new DocumentIntelligenceClient(new Uri(endpoint), credential);
+
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        var content = BinaryData.FromStream(stream);
+        var operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", content);
+        var result = operation.Value;
+
+        if (result == null || result.Pages == null || !result.Pages.Any())
+        {
+            Console.WriteLine("Warning: No content extracted from the file.");
+            return string.Empty;
+        }
+
+        var markdown = new StringBuilder();
+        foreach (var page in result.Pages)
+        {
+            foreach (var line in page.Lines)
+            {
+                markdown.AppendLine(line.Content);
+            }
+
+            foreach (var table in result.Tables)
+            {
+                if (table.RowCount > 0 && table.ColumnCount > 0)
+                {
+                    var headers = new List<string>();
+                    for (int col = 0; col < table.ColumnCount; col++)
+                    {
+                        var cell = table.Cells.FirstOrDefault(c => c.RowIndex == 0 && c.ColumnIndex == col);
+                        headers.Add(cell?.Content ?? "");
+                    }
+                    markdown.AppendLine("| " + string.Join(" | ", headers) + " |");
+                    markdown.AppendLine("| " + string.Join(" | ", Enumerable.Repeat("---", table.ColumnCount)) + " |");
+
+                    for (int row = 1; row < table.RowCount; row++)
+                    {
+                        var rowCells = new List<string>();
+                        for (int col = 0; col < table.ColumnCount; col++)
+                        {
+                            var cell = table.Cells.FirstOrDefault(c => c.RowIndex == row && c.ColumnIndex == col);
+                            rowCells.Add(cell?.Content ?? "");
+                        }
+                        markdown.AppendLine("| " + string.Join(" | ", rowCells) + " |");
+                    }
+                    markdown.AppendLine();
+                }
+            }
+        }
+        return markdown.ToString();
+    }
+
+    async Task<Agent> GetOrCreateAgentAsync(AgentsClient client, VectorStore vectorStore, string agentName, string companyTicker, string formName, string vectorStoreName, string date)
+    {
+        Console.WriteLine($"Checking if agent '{agentName}' exists...");
+        FileSearchToolResource fileSearchToolResource = new FileSearchToolResource();
+        fileSearchToolResource.VectorStoreIds.Add(vectorStore.Id);
+
+        try
+        {
+            var agentsResponse = await client.GetAgentsAsync();
+            var existingAgent = agentsResponse.Value.Data.FirstOrDefault(a => a.Name == agentName);
+            if (existingAgent != null)
+            {
+                Console.WriteLine($"Agent '{agentName}' already exists with ID: {existingAgent.Id}. Deleting and recreating to attach new vector store '{vectorStoreName}'...");
+                await client.DeleteAgentAsync(existingAgent.Id);
+                Console.WriteLine("Existing agent deleted.");
+            }
+            else
+            {
+                Console.WriteLine($"No existing agent found with name '{agentName}'. Proceeding with creation.");
+            }
+        }
+        catch (NotSupportedException)
+        {
+            Console.WriteLine("Agent listing not supported; proceeding with creation.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking or deleting agent: {ex.Message}. Proceeding with creation.");
+        }
+
+        var toolDefinitions = new List<string>();
+        foreach (var (toolName, (_, subtool)) in mcpTools)
+        {
+            var parameters = subtool["parameters"] as Dictionary<string, object>;
+            var properties = new Dictionary<string, object>();
+            var required = new List<string>();
+            foreach (var param in parameters)
+            {
+                var paramDetails = param.Value as Dictionary<string, object>;
+                properties[param.Key] = new { type = paramDetails["type"], description = param.Key };
+                if ((bool)paramDetails["required"])
+                {
+                    required.Add(param.Key);
+                }
+            }
+        
+            var toolJson = JsonSerializer.Serialize(new
+            {
+                type = "function",
+                function = new
+                {
+                    name = toolName,
+                    description = subtool["description"],
+                    parameters = new
+                    {
+                        type = "object",
+                        properties,
+                        required
+                    }
+                }
+            });
+
+            toolDefinitions.Add(toolJson);
+            Console.WriteLine($"Tool definition added: {toolName}");
+        }
+
+        string instructions = formName.ToUpper() switch
+        {
+            "10-K" => $"You are a financial analysis agent for {companyTicker} specializing in annual 10-K filings. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for historical financial details like performance, risks, and operations. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n" + string.Join("\n", toolDefinitions) + "\nAnswer in Markdown.",
+            "Q4" => $"You are a financial analysis agent for {companyTicker} specializing in Q4 filings. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for Q4 performance, earnings, and updates. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n" + string.Join("\n", toolDefinitions) + "\nAnswer in Markdown.",
+            _ => $"You are a financial analysis agent for {companyTicker}. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for filing-specific details. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n" + string.Join("\n", toolDefinitions) + "\nAnswer in Markdown."
+        };
+        Console.WriteLine("Agent instructions prepared.");
+
+        Console.WriteLine($"Creating agent '{agentName}' for ticker '{companyTicker}' with vector store '{vectorStoreName}'...");
+        try
+        {
+            Azure.Response<Agent> agentResponse = await client.CreateAgentAsync(
+                model: "gpt-4o",
+                name: agentName,
+                instructions: instructions,
+                tools: new List<ToolDefinition> { new FileSearchToolDefinition() },
+                toolResources: new ToolResources { FileSearch = fileSearchToolResource }
+            );
+
+            Agent agent = agentResponse?.Value ?? throw new InvalidOperationException("Failed to create agent: Response was null.");
+            Console.WriteLine($"Agent created: {agent.Name} (ID: {agent.Id}) with vector store ID: {vectorStore.Id}");
+            return agent;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to create agent '{agentName}': {ex.Message}\nStack Trace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    (string? companyTicker, string? formName, string? date, string? name) ParseFileName(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath))
+            return (null, null, null, null);
+
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string[] parts = fileName.Split("--", StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3)
+            return (null, null, null, null);
+
+        string companyTicker = parts[0];
+        string formName = parts[1];
+        string[] dateAndNameParts = parts[2].Split('-', 2);
+
+        if (dateAndNameParts.Length < 1 || dateAndNameParts[0].Length != 8 || !dateAndNameParts[0].All(char.IsDigit))
+            return (null, null, null, null);
+
+        string date = dateAndNameParts[0];
+        string name = dateAndNameParts.Length > 1 ? dateAndNameParts[1] : null;
+
+        return (companyTicker, formName, date, name);
+    }
+
+    string ConvertMarkdownToHtml(string markdown)
+    {
+        if (string.IsNullOrEmpty(markdown))
+            return string.Empty;
+
+        var pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseSoftlineBreakAsHardlineBreak()
+            .Build();
+
+        return Markdown.ToHtml(markdown, pipeline);
+    }
+
+    (string? companyTicker, string? formName, string? date, string? name) ParseVectorStoreName(string vectorStoreName)
+    {
+        if (string.IsNullOrEmpty(vectorStoreName))
+            return (null, null, null, null);
+
+        string[] parts = vectorStoreName.Split("--", StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3)
+            return (null, null, null, null);
+
+        string companyTicker = parts[0];
+        string formName = parts[1];
+        string[] dateAndNameParts = parts[2].Split('-', 2);
+
+        if (dateAndNameParts.Length < 1 || dateAndNameParts[0].Length != 8 || !dateAndNameParts[0].All(char.IsDigit))
+            return (null, null, null, null);
+
+        string date = dateAndNameParts[0];
+        string name = dateAndNameParts.Length > 1 ? dateAndNameParts[1] : null;
+
+        return (companyTicker, formName, date, name);
+    }
+
+    List<string> GenerateQuestionsFromToc(string tocDescription)
+    {
+        var questions = new List<string>();
+        if (string.IsNullOrEmpty(tocDescription))
+        {
+            questions.Add("What is the structure of the document?");
+            questions.Add("Can you list the main sections?");
+            questions.Add("What topics are covered?");
+            questions.Add("Is there a financial summary section?");
+            questions.Add("What details are in the introduction?");
+            return questions;
+        }
+
+        if (tocDescription.Contains("Financial Statements"))
+            questions.Add("What are the key points in the Financial Statements section?");
+        if (tocDescription.Contains("Management Discussion"))
+            questions.Add("What does the Management Discussion section cover?");
+        if (tocDescription.Contains("Risk Factors"))
+            questions.Add("What are the main Risk Factors listed?");
+        if (tocDescription.Contains("Business Overview"))
+            questions.Add("Can you summarize the Business Overview?");
+        if (tocDescription.Contains("Executive Summary"))
+            questions.Add("What is included in the Executive Summary?");
+
+        while (questions.Count < 5)
+        {
+            questions.Add($"What details are provided in section {questions.Count + 1}?");
+        }
+
+        return questions.Take(5).ToList();
+    }
+
+    async Task OnQuestionSelected(string? question)
+    {
+        if (!string.IsNullOrEmpty(question))
+        {
+            UserInput = question;
+            SelectedQuestion = question;
+            Console.WriteLine($"Question selected: {question}");
+            StateHasChanged();
+        }
+    }
+
+    async Task SomeAsyncMethod()
+    {
+        await Task.Delay(100);
+        Console.WriteLine("Async method executed.");
+    }
+
+    void CheckVariable()
+    {
+        if (someVariable != null)
+            Console.WriteLine("someVariable is not null");
+        else
+            Console.WriteLine("someVariable is null");
+    }
+
+    void CheckObject()
+    {
+        if (someObject != null)
+            Console.WriteLine(someObject.ToString());
+        else
+            Console.WriteLine("someObject is null");
+    }
+
+    string JoinValues()
+    {
+        return string.Join(", ", new[] { "value1", "value2" });
+    }
+
+    object? someObject = null;
+    string? someVariable = null;
+    string? nullableValue = null;
+    HorizontalAlignment Horizontal;
+    VerticalAlignment Vertical;
+}

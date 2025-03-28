@@ -1,26 +1,22 @@
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.Projects;
+using Azure.Core;
 using Azure.Identity;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 class Program
 {
-    /// <summary>
-    /// A static readonly collection of supported file extensions for the application.
-    /// </summary>
-    /// <remarks>
-    /// This HashSet contains a list of file extensions that are supported by the application.
-    /// The comparison is case-insensitive due to the use of <see cref="StringComparer.OrdinalIgnoreCase"/>.
-    /// </remarks>
     private static readonly HashSet<string> SupportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        ".c", ".cpp", ".cs", ".css", ".doc", ".docx", ".go", ".html", ".java", ".js", 
+        ".c", ".cpp", ".cs", ".css", ".doc", ".docx", ".go", ".html", ".java", ".js",
         ".json", ".md", ".pdf", ".php", ".pptx", ".py", ".rb", ".sh", ".tex", ".ts", ".txt",
         ".png", ".jpg", ".tiff", ".bmp"
     };
@@ -29,47 +25,12 @@ class Program
     {
         ".png", ".jpg", ".tiff", ".bmp"
     };
-    
-    /// The entry point of the Financial Analysis application.
-    /// This method initializes the application, processes command-line arguments, 
-    /// and performs operations such as managing vector stores or interacting with files for analysis.
-    /// </summary>
-    /// <param name="args">
-    /// Command-line arguments:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>
-    /// <c>-l</c> or <c>--list</c>: Lists and manages vector stores.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <description>
-    /// <c>&lt;filename&gt;</c>: Specifies the file to analyze. The filename must follow the format 
-    /// <c>&lt;ticker&gt;--&lt;form&gt;--&lt;date&gt;_&lt;timestamp&gt;.&lt;extension&gt;</c>.
-    /// </description>
-    /// </item>
-    /// </list>
-    /// </param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <remarks>
-    /// The application requires the following environment variables:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>
-    /// <c>AIPROJECT_CONNECTION_STRING</c>: The connection string for the AgentsClient.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <description>
-    /// <c>USER_PREFIX</c> (optional): A prefix for multi-user support. Defaults to "DefaultUser".
-    /// </description>
-    /// </item>
-    /// </list>
-    /// Supported file extensions are defined in the <c>SupportedExtensions</c> collection.
-    /// </remarks>
-    /// <exception cref="System.Exception">
-    /// Thrown when an error occurs during vector store management, agent creation, or file analysis.
-    /// </exception>
+
+    private const float Temperature = 0.5f;
+    private const float TopP = 0.9f;
+
+    private static Dictionary<string, (string ParentTool, Dictionary<string, object> Subtool)> mcpTools = new();
+
     static async Task Main(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("AIPROJECT_CONNECTION_STRING");
@@ -81,6 +42,8 @@ class Program
 
         var userPrefix = Environment.GetEnvironmentVariable("USER_PREFIX") ?? "DefaultUser";
         Console.WriteLine($"Using user prefix: {userPrefix}");
+
+        await FetchMcpToolsAsync();
 
         if (args.Length == 1 && (args[0] == "-l" || args[0] == "--list"))
         {
@@ -100,7 +63,7 @@ class Program
         {
             Console.WriteLine("Usage:");
             Console.WriteLine("  - To chat with a file: dotnet run <filename>");
-            Console.WriteLine("    Example: dotnet run TSLA--10-K--20250315_100652.png");
+            Console.WriteLine("    Example: dotnet run TSLA--10-K--20250315_100652.pdf");
             Console.WriteLine("  - To list and manage vector stores: dotnet run -l or --list");
             Console.WriteLine("  Set USER_PREFIX environment variable for multi-user support (e.g., 'UserA')");
             return;
@@ -137,9 +100,9 @@ class Program
             string vectorStoreName = $"{formName}--{date}";
 
             VectorStore vectorStore = await GetOrCreateVectorStoreAsync(client, filePath, vectorStoreName);
-            Agent agent = await GetOrCreateAgentAsync(client, vectorStore, agentName, companyTicker, formName, vectorStoreName);
+            Agent agent = await GetOrCreateAgentAsync(client, vectorStore, agentName, companyTicker, formName, vectorStoreName, date);
 
-            await ChatLoop(client, agent, filePath, vectorStoreName);
+            await ChatLoop(client, agent, filePath, vectorStoreName, companyTicker, formName);
         }
         catch (Exception ex)
         {
@@ -150,25 +113,51 @@ class Program
         Console.ReadKey();
     }
 
-    /// Lists and manages vector stores in Azure using the provided <see cref="AgentsClient"/>.
-    /// </summary>
-    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with Azure vector stores.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <remarks>
-    /// This method retrieves a list of vector stores from Azure and displays them in a console-based UI.
-    /// Users can navigate through the list using arrow keys, delete a selected vector store, or exit the management interface.
-    /// 
-    /// <para>
-    /// Key functionalities:
-    /// <list type="bullet">
-    /// <item><description>Displays a list of vector stores with details such as index, name, ID, and creation date.</description></item>
-    /// <item><description>Allows navigation through the list using the ↑ and ↓ arrow keys.</description></item>
-    /// <item><description>Enables deletion of a selected vector store with confirmation.</description></item>
-    /// <item><description>Handles errors during listing and deletion operations gracefully.</description></item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    /// <exception cref="Exception">Thrown if an error occurs while retrieving or deleting vector stores.</exception>
+    private static async Task FetchMcpToolsAsync()
+    {
+        using var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8080/") };
+        try
+        {
+            var toolsResponse = await httpClient.GetStringAsync("/tools");
+            var toolsData = JsonSerializer.Deserialize<Dictionary<string, List<Dictionary<string, object>>>>(toolsResponse);
+            if (toolsData != null && toolsData.TryGetValue("tools", out var tools))
+            {
+                Console.WriteLine("MCP Server Tools Available:");
+                foreach (var tool in tools)
+                {
+                    var parentToolName = tool["name"]?.ToString();
+                    if (string.IsNullOrEmpty(parentToolName)) continue;
+                    Console.WriteLine($"- {parentToolName}");
+                    var subtools = tool["subtools"] as List<object>;
+                    if (subtools != null)
+                    {
+                        foreach (var subtool in subtools)
+                        {
+                            var st = subtool as Dictionary<string, object>;
+                            if (st != null && st.TryGetValue("name", out var nameObj))
+                            {
+                                var subtoolName = nameObj?.ToString();
+                                if (string.IsNullOrEmpty(subtoolName)) continue;
+                                var mappedName = subtoolName switch
+                                {
+                                    "BraveSearch" => "brave_web_search",
+                                    "YahooStockPrice" => "yahoo_stock_price",
+                                    _ => subtoolName.ToLower().Replace(" ", "_")
+                                };
+                                mcpTools[mappedName] = (parentToolName, st);
+                                Console.WriteLine($"  - {mappedName}: {st["description"]}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not fetch MCP tools from /tools: {ex.Message}. Proceeding without MCP tools.");
+        }
+    }
+
     private static async Task ListAndManageVectorStoresAsync(AgentsClient client)
     {
         try
@@ -224,7 +213,7 @@ class Program
                         var selectedVectorStore = vectorStores[selectedIndex];
                         Console.WriteLine($"\nAre you sure you want to delete '{selectedVectorStore.Name}' (ID: {selectedVectorStore.Id})? (y/n)");
                         Console.Write("> ");
-                        string confirmation = Console.ReadLine()?.Trim().ToLower() ?? "";
+                        string? confirmation = Console.ReadLine()?.Trim().ToLower();
                         if (confirmation == "y")
                         {
                             try
@@ -261,29 +250,15 @@ class Program
         }
     }
 
-    /// Initiates a chat loop with the specified agent, allowing the user to ask questions
-    /// and receive responses based on the provided file data and vector store.
-    /// </summary>
-    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with the agent service.</param>
-    /// <param name="agent">The <see cref="Agent"/> instance representing the agent to interact with.</param>
-    /// <param name="filePath">The file path of the data to be used by the agent for answering questions.</param>
-    /// <param name="vectorStoreName">The name of the vector store containing the file data.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// <remarks>
-    /// This method continuously prompts the user for input, sends the input to the agent,
-    /// and displays the agent's response. The loop exits when the user presses the Esc key.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when any of the operations (e.g., creating a thread, sending a message, starting a run)
-    /// fail to return a valid response.
-    /// </exception>
-    private static async Task ChatLoop(AgentsClient client, Agent agent, string filePath, string vectorStoreName)
+    private static async Task ChatLoop(AgentsClient client, Agent agent, string filePath, string vectorStoreName, string companyTicker, string formName)
     {
         Console.WriteLine($"Chatting with file '{filePath}' using agent '{agent.Name}' (Vector Store: '{vectorStoreName}'). Enter a question (or press Esc to exit):");
+        using var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:8080/") };
+
         while (true)
         {
             Console.Write("> ");
-            string userInput = ReadLineWithEsc();
+            string? userInput = ReadLineWithEsc();
             if (userInput == null) // Esc pressed
             {
                 Console.WriteLine("Exiting...");
@@ -309,10 +284,15 @@ class Program
                     throw new InvalidOperationException("Failed to create message.");
                 Console.WriteLine("Message sent.");
 
+                // Explicitly force the use of yahoo_stock_price for stock price queries
+                string additionalInstructions = $"You are a financial analysis agent. For any query asking for the current stock price (e.g., 'TSLA stock price today'), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke with the ticker '{companyTicker}' unless another ticker is specified. For historical data, prioritize the vector store '{vectorStoreName}' from the {companyTicker} {formName} filing dated {Path.GetFileNameWithoutExtension(filePath).Split('_')[0].Split("--")[2]}. Discover tools at http://localhost:8080/tools. Answer in Markdown format.";
+
                 var runResponse = await client.CreateRunAsync(
-                    thread.Id,
-                    agent.Id,
-                    additionalInstructions: $"Use the file data from the vector store '{vectorStoreName}' to answer the question in Markdown format."
+                    threadId: thread.Id,
+                    assistantId: agent.Id,
+                    additionalInstructions: additionalInstructions,
+                    temperature: Temperature,
+                    topP: TopP
                 );
                 if (runResponse?.Value == null)
                     throw new InvalidOperationException("Failed to start run.");
@@ -321,14 +301,85 @@ class Program
 
                 do
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    await Task.Delay(500);
                     runResponse = await client.GetRunAsync(thread.Id, run.Id);
                     if (runResponse?.Value == null)
                         throw new InvalidOperationException("Failed to get run status.");
                     run = runResponse.Value;
                     Console.Write($"Run status: {run.Status}...");
-                }
-                while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress);
+
+                    if (run.Status == RunStatus.RequiresAction && run.RequiredActions != null)
+                    {
+                        Console.WriteLine("\nTool action required.");
+                        foreach (var action in run.RequiredActions)
+                        {
+                            var toolCall = action as RequiredFunctionToolCall;
+                            if (toolCall == null)
+                            {
+                                Console.WriteLine("Warning: Action is not a function tool call. Skipping.");
+                                continue;
+                            }
+
+                            Console.WriteLine($"Tool call detected: {toolCall.Name}");
+                            if (!mcpTools.ContainsKey(toolCall.Name))
+                            {
+                                Console.WriteLine($"Error: Tool '{toolCall.Name}' not found in MCP capabilities.");
+                                continue;
+                            }
+
+                            var (parentTool, subtool) = mcpTools[toolCall.Name];
+                            var parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(toolCall.Arguments) ?? new Dictionary<string, string>();
+                            Console.WriteLine($"Tool arguments: {toolCall.Arguments}");
+
+                            var mcpPayload = new
+                            {
+                                tool = parentTool,
+                                parameters = new Dictionary<string, object> { { "operation", subtool["name"] } }
+                            };
+
+                            foreach (var param in parameters)
+                            {
+                                mcpPayload.parameters[param.Key] = param.Value;
+                            }
+
+                            if (toolCall.Name == "yahoo_stock_price")
+                            {
+                                if (!parameters.ContainsKey("ticker")) mcpPayload.parameters["ticker"] = companyTicker;
+                                if (!parameters.ContainsKey("interval")) mcpPayload.parameters["interval"] = "1d";
+                                if (!parameters.ContainsKey("period")) mcpPayload.parameters["period"] = "1d"; // Use 1d for current price
+                            }
+
+                            var payloadJson = JsonSerializer.Serialize(mcpPayload);
+                            Console.WriteLine($"Sending payload to MCP: {payloadJson}");
+                            var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+                            var mcpResponse = await httpClient.PostAsync("invoke", content);
+                            var mcpResult = await mcpResponse.Content.ReadAsStringAsync();
+                            Console.WriteLine($"MCP response (Status: {mcpResponse.StatusCode}): {mcpResult}");
+
+                            string? toolResult = null;
+                            if (mcpResponse.IsSuccessStatusCode)
+                            {
+                                var resultDict = JsonSerializer.Deserialize<Dictionary<string, string>>(mcpResult);
+                                toolResult = resultDict?.ContainsKey("result") == true ? resultDict["result"] : mcpResult;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Error: MCP request failed with status {mcpResponse.StatusCode}");
+                            }
+
+                            if (toolResult != null)
+                            {
+                                await client.SubmitToolOutputsToRunAsync(run, new List<ToolOutput> { new ToolOutput(toolCall.Id, toolResult) });
+                                Console.WriteLine($"Submitted {toolCall.Name} result to agent: {toolResult}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Error: No valid result from '{toolCall.Name}'. Response: {mcpResult}");
+                                await client.SubmitToolOutputsToRunAsync(run, new List<ToolOutput> { new ToolOutput(toolCall.Id, "Error: Unable to fetch data") });
+                            }
+                        }
+                    }
+                } while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress || run.Status == RunStatus.RequiresAction);
 
                 if (run.Status != RunStatus.Completed)
                 {
@@ -358,7 +409,7 @@ class Program
                         }
                         else if (contentItem is MessageImageFileContent imageFileItem)
                         {
-                            Console.WriteLine($"<image from ID: {imageFileItem.FileId}");
+                            Console.WriteLine($"<image from ID: {imageFileItem.FileId}>");
                         }
                     }
                 }
@@ -375,25 +426,6 @@ class Program
             Console.WriteLine("\nEnter another question (or press Esc to exit):");
         }
     }
-
-#pragma warning disable CS8603 // Suppress false positive CS8603 warning
-    
-    /// Retrieves an existing vector store by name or creates a new one if it does not exist.
-    /// </summary>
-    /// <param name="client">The <see cref="AgentsClient"/> instance used to interact with the Azure service.</param>
-    /// <param name="filePath">The file path of the document or image to be uploaded for vector store creation.</param>
-    /// <param name="vectorStoreName">The name of the vector store to retrieve or create.</param>
-    /// <returns>
-    /// A <see cref="Task{VectorStore}"/> representing the asynchronous operation, 
-    /// with the resulting <see cref="VectorStore"/> object.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if the vector stores cannot be retrieved, the file upload fails, or the vector store creation fails.
-    /// </exception>
-    /// <remarks>
-    /// If the file provided is an image, it will be preprocessed using Document Intelligence to extract content as Markdown.
-    /// The extracted content will be saved to a new file, which will then be uploaded for vector store creation.
-    /// </remarks>
     private static async Task<VectorStore> GetOrCreateVectorStoreAsync(AgentsClient client, string filePath, string vectorStoreName)
     {
         Console.WriteLine($"Checking if vector store '{vectorStoreName}' exists in Azure...");
@@ -422,29 +454,26 @@ class Program
         }
 
         string uploadFilePath = filePath;
-        if (ImageExtensions.Contains(Path.GetExtension(filePath).ToLower()))
+        if (ImageExtensions.Contains(Path.GetExtension(filePath).ToLower()) || Path.GetExtension(filePath).ToLower() == ".pdf")
         {
-            // Preprocess image files with Document Intelligence
             string markdownContent = await ExtractContentAsMarkdown(filePath);
             string directory = Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
             uploadFilePath = Path.Combine(directory, $"{Path.GetFileNameWithoutExtension(filePath)}_processed.md");
             File.WriteAllText(uploadFilePath, markdownContent);
-            Console.WriteLine($"Markdown content extracted from image and saved to '{uploadFilePath}'. Verifying content...");
+            Console.WriteLine($"Markdown content extracted from file and saved to '{uploadFilePath}'. Verifying content...");
             Console.WriteLine($"Markdown content preview: {(markdownContent.Length > 100 ? markdownContent.Substring(0, 100) + "..." : markdownContent)}");
         }
 
-        // Upload the file
         Console.WriteLine($"Uploading file '{uploadFilePath}'...");
-        Response<AgentFile> uploadAgentFileResponse = await client.UploadFileAsync(filePath: uploadFilePath, purpose: AgentFilePurpose.Agents);
+        Azure.Response<AgentFile> uploadAgentFileResponse = await client.UploadFileAsync(filePath: uploadFilePath, purpose: AgentFilePurpose.Agents);
         if (uploadAgentFileResponse?.Value == null)
             throw new InvalidOperationException($"Failed to upload file '{uploadFilePath}'.");
 
         AgentFile uploadedAgentFile = uploadAgentFileResponse.Value;
         Console.WriteLine($"File uploaded successfully with ID: {uploadedAgentFile.Id}");
 
-        // Create the vector store
         Console.WriteLine($"Creating vector store '{vectorStoreName}' with file ID: {uploadedAgentFile.Id}...");
-        Response<VectorStore> vectorStoreResponseCreate = await client.CreateVectorStoreAsync(fileIds: new List<string> { uploadedAgentFile.Id }, name: vectorStoreName);
+        Azure.Response<VectorStore> vectorStoreResponseCreate = await client.CreateVectorStoreAsync(fileIds: new List<string> { uploadedAgentFile.Id }, name: vectorStoreName);
         if (vectorStoreResponseCreate?.Value == null)
             throw new InvalidOperationException("Failed to create vector store.");
 
@@ -452,24 +481,7 @@ class Program
         Console.WriteLine($"Vector store created with ID: {vectorStore.Id}");
         return vectorStore;
     }
-#pragma warning restore CS8603
 
-        /// Extracts the content of a document or image file as Markdown using the Azure Document Intelligence service.
-    /// </summary>
-    /// <param name="filePath">The file path of the document or image to analyze.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation. The task result contains the extracted content
-    /// formatted as a Markdown string. If no content is extracted, an empty string is returned.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if the Document Intelligence endpoint or API key is not set in the environment variables.
-    /// </exception>
-    /// <remarks>
-    /// This method uses the Azure Document Intelligence client to analyze the document or image.
-    /// It extracts text lines and tables from the document and formats them as Markdown.
-    /// Ensure that the environment variables "DOCUMENT_INTELLIGENCE_ENDPOINT" and "DOCUMENT_INTELLIGENCE_API_KEY"
-    /// are set before calling this method.
-    /// </remarks>
     private static async Task<string> ExtractContentAsMarkdown(string filePath)
     {
         var endpoint = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_ENDPOINT");
@@ -479,10 +491,10 @@ class Program
             throw new InvalidOperationException("Document Intelligence endpoint or API key not set in environment variables.");
         }
 
-        var credential = new AzureKeyCredential(apiKey);
+        var credential = new Azure.AzureKeyCredential(apiKey);
         var client = new DocumentIntelligenceClient(new Uri(endpoint), credential);
 
-        Console.WriteLine($"Analyzing image '{filePath}' with Document Intelligence...");
+        Console.WriteLine($"Analyzing file '{filePath}' with Document Intelligence...");
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var content = BinaryData.FromStream(stream);
         var operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", content);
@@ -490,12 +502,11 @@ class Program
 
         if (result == null || result.Pages == null || !result.Pages.Any())
         {
-            Console.WriteLine("Warning: No content extracted from the image.");
+            Console.WriteLine("Warning: No content extracted from the file.");
             return string.Empty;
         }
 
         var markdown = new StringBuilder();
-
         foreach (var page in result.Pages)
         {
             foreach (var line in page.Lines)
@@ -534,20 +545,7 @@ class Program
         return markdown.ToString();
     }
 
-    /// Retrieves an existing agent by name or creates a new one if it does not exist. 
-    /// If an agent with the specified name exists, it is deleted and recreated to attach a new vector store.
-    /// </summary>
-    /// <param name="client">The <see cref="AgentsClient"/> used to interact with the agent service.</param>
-    /// <param name="vectorStore">The <see cref="VectorStore"/> to associate with the agent.</param>
-    /// <param name="agentName">The name of the agent to retrieve or create.</param>
-    /// <param name="companyTicker">The ticker symbol of the company the agent is associated with.</param>
-    /// <param name="formName">The name of the form (e.g., "10-K", "Q4") to customize the agent's instructions.</param>
-    /// <param name="vectorStoreName">The name of the vector store to include in the agent's instructions.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation. The task result contains the created or retrieved <see cref="Agent"/>.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">Thrown if the agent creation fails.</exception>
-    private static async Task<Agent> GetOrCreateAgentAsync(AgentsClient client, VectorStore vectorStore, string agentName, string companyTicker, string formName, string vectorStoreName)
+    private static async Task<Agent> GetOrCreateAgentAsync(AgentsClient client, VectorStore vectorStore, string agentName, string companyTicker, string formName, string vectorStoreName, string date)
     {
         Console.WriteLine($"Checking if agent '{agentName}' exists...");
 
@@ -573,32 +571,53 @@ class Program
             Console.WriteLine($"Error checking or deleting agent: {ex.Message}. Proceeding with creation.");
         }
 
-        string instructions;
-        switch (formName.ToUpper())
+        var toolDefinitions = new List<string>();
+        foreach (var (toolName, (_, subtool)) in mcpTools)
         {
-            case "10-K":
-                instructions = $"You are a helpful agent for {companyTicker} specializing in annual 10-K filings. Your knowledge is based on the vector store '{vectorStoreName}' attached to this query. Use the vector store data to provide detailed answers about the company's annual financial performance, risks, and operations.";
-                break;
-            case "Q4":
-                instructions = $"You are a helpful agent for {companyTicker} specializing in quarterly Q4 filings. Your knowledge is based on the vector store '{vectorStoreName}' attached to this query. Use the vector store data to provide insights into the company's fourth-quarter performance, earnings, and updates.";
-                break;
-            default:
-                instructions = $"You are a helpful agent for {companyTicker}. Your knowledge is based on the vector store '{vectorStoreName}' attached to this query. Use the vector store data to answer questions accurately about this specific filing.";
-                break;
+            var parameters = subtool["parameters"] as Dictionary<string, object>;
+            var properties = new Dictionary<string, object>();
+            var required = new List<string>();
+            foreach (var param in parameters)
+            {
+                var paramDetails = param.Value as Dictionary<string, object>;
+                properties[param.Key] = new { type = paramDetails["type"], description = param.Key };
+                if ((bool)paramDetails["required"])
+                {
+                    required.Add(param.Key);
+                }
+            }
+            var toolJson = $@"{{
+                ""type"": ""function"",
+                ""function"": {{
+                    ""name"": ""{toolName}"",
+                    ""description"": ""{subtool["description"]}"",
+                    ""parameters"": {{
+                        ""type"": ""object"",
+                        ""properties"": {JsonSerializer.Serialize(properties)},
+                        ""required"": {JsonSerializer.Serialize(required)}
+                    }}
+                }}
+            }}";
+            toolDefinitions.Add(toolJson);
         }
 
+        string instructions = formName.ToUpper() switch
+        {
+            "10-K" => $"You are a financial analysis agent for {companyTicker} specializing in annual 10-K filings. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for historical financial details like performance, risks, and operations. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n{string.Join("\n", toolDefinitions)}\nAnswer in Markdown.",
+            "Q4" => $"You are a financial analysis agent for {companyTicker} specializing in Q4 filings. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for Q4 performance, earnings, and updates. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n{string.Join("\n", toolDefinitions)}\nAnswer in Markdown.",
+            _ => $"You are a financial analysis agent for {companyTicker}. Your primary knowledge is the vector store '{vectorStoreName}' (dated {date}). Use this for filing-specific details. For real-time data (e.g., current stock prices), you MUST use the 'yahoo_stock_price' tool at http://localhost:8080/invoke:\n{string.Join("\n", toolDefinitions)}\nAnswer in Markdown."
+        };
+
         Console.WriteLine($"Creating agent '{agentName}' for ticker '{companyTicker}' with vector store '{vectorStoreName}'...");
-        Response<Agent> agentResponse = await client.CreateAgentAsync(
+        Azure.Response<Agent> agentResponse = await client.CreateAgentAsync(
             model: "gpt-4o",
             name: agentName,
             instructions: instructions,
             tools: new List<ToolDefinition> { new FileSearchToolDefinition() },
-            toolResources: new ToolResources() { FileSearch = fileSearchToolResource });
-        
-        if (agentResponse?.Value == null)
-            throw new InvalidOperationException("Failed to create agent.");
-        
-        Agent agent = agentResponse.Value;
+            toolResources: new ToolResources { FileSearch = fileSearchToolResource }
+        );
+
+        Agent agent = agentResponse?.Value ?? throw new InvalidOperationException("Failed to create agent.");
         Console.WriteLine($"Agent created: {agent.Name} (ID: {agent.Id}) with vector store ID: {vectorStore.Id}");
         return agent;
     }
@@ -620,19 +639,7 @@ class Program
         return (companyTicker, formName, date);
     }
 
-    /// Reads a line of input from the console, allowing the user to cancel input with the Escape key.
-    /// </summary>
-    /// <returns>
-    /// The input string entered by the user, or <c>null</c> if the Escape key is pressed.
-    /// </returns>
-    /// <remarks>
-    /// - The method captures user input character by character.
-    /// - Pressing the Enter key finalizes the input and returns the string.
-    /// - Pressing the Backspace key removes the last character from the input.
-    /// - Pressing the Escape key cancels the input and returns <c>null</c>.
-    /// - The method provides real-time feedback by displaying the input as it is typed.
-    /// </remarks>
-    private static string ReadLineWithEsc()
+    private static string? ReadLineWithEsc()
     {
         string input = "";
         while (true)

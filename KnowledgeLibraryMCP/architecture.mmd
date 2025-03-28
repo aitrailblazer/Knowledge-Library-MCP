@@ -1,0 +1,204 @@
+flowchart TD
+    %% Main Title
+    Title["Knowledge Library MCP"]:::mainTitle
+    Subtitle["(Model Context Protocol)"]:::subtitle
+    Title --> Subtitle
+
+    %% Client Layer
+    User((User)):::userNode --> WebUI[KnowledgeLibraryMCP.Web<br>Blazor + FluentUI]:::largeText
+    
+    %% Labels for subgraphs - placed outside and above
+    WebFrontendLabel["Web Frontend"]:::subgraphLabel
+    APIServiceLabel["API Service"]:::subgraphLabel
+    IntegrationLayerLabel["Integration Layer"]:::subgraphLabel
+    AzureServicesLabel["Azure AI Services  (Multi-Agent Multimodal RAG Implementation)"]:::subgraphLabel
+    ExternalComponentsLabel["External Components"]:::subgraphLabel
+    AspireOrchLabel["Aspire Orchestration"]:::subgraphLabel
+    
+    %% Add spacing between subgraphs
+    WebFrontendSpacer[ ]:::spacer
+    APIServiceSpacer[ ]:::spacer
+    IntegrationLayerSpacer[ ]:::spacer
+    
+    %% Frontend Components - with explicit label above
+    WebFrontendLabel --- WebFrontendSpacer
+    subgraph WebFrontend[" "]
+        direction LR
+        WebUI --> DocUpload["Document Upload"]:::largeText
+        WebUI --> Search["Search Interface"]:::largeText
+        WebUI --> Chat["Chat Interface"]:::largeText
+        WebUI --> Audio["Audio Interface"]:::largeText
+    end
+    
+    %% API Layer - with explicit label above
+    WebFrontend --- APIServiceSpacer
+    APIServiceLabel --- APIServiceSpacer
+    subgraph APIService[" "]
+        direction LR
+        ApiService["KnowledgeLibraryMCP.ApiService"]:::largeText
+        DocUpload --> ApiService
+        Search --> ApiService
+        Chat --> ApiService
+        Audio --> ApiService
+        
+        ApiService --> DocService["Document Service"]:::largeText
+        ApiService --> VectorService["Vector Store Service"]:::largeText
+        ApiService --> AzureAIFoundry["Azure AI Foundry"]:::largeText
+        ApiService --> AudioService["Audio Processing Service"]:::largeText
+    end
+    
+    %% Integration Layer - with explicit label above
+    APIService --- IntegrationLayerSpacer
+    IntegrationLayerLabel --- IntegrationLayerSpacer
+    subgraph IntegrationLayer[" "]
+        direction LR
+        DocService --> DocIntelligence["Azure AI Document Intelligence"]:::largeText
+        VectorService --> VectorStore["Azure AI Vector Stores"]:::largeText
+        AudioService --> RealtimeAudio["Audio Processing"]:::largeText
+    end
+    
+    %% MCP Azure Server - with explicit label above
+    AzureServicesLabel -.- AzureServices
+    subgraph AzureServices[" "]
+        direction LR
+        DocIntelligence 
+        VectorStore
+        AzureOpenAI["Azure AI Foundry Agent Service"]:::largeText
+        AzureAIFoundry --> AzureOpenAI
+        AzureOpenAI --> McpAgent["MCP Router Agent"]:::agentNode
+        AzureOpenAI --> DynamicAgent["TSLA-10-K--20250325 Agent"]:::agentNode
+        DynamicAgent --> VectorStore
+        DynamicAgent --> UploadedPDF["Tesla 10-K PDF"]:::largeText
+        UploadedPDF --> Documents
+        UploadedPDF --> Embeddings
+        DynamicAgent --> ChatInterface["Chat via Text or Speech (FluentUI Web Interface)"]:::largeText
+        AzureOpenAI --> DynamicAgent2["TSLA-Insider-Trading--20250325 Agent"]:::agentNode
+        DynamicAgent2 --> VectorStore
+        DynamicAgent2 --> UploadedTable["TSLA-Insider-Trading Table PNG"]:::largeText
+        UploadedTable --> Documents
+        UploadedTable --> Embeddings
+        DynamicAgent2 --> ChatInterface["Chat via Text or Speech (FluentUI Web Interface)"]:::largeText
+        ChatInterface --> WebUI
+        ChatInterface --> Chat["Chat Interface"]
+        ChatInterface --> Audio["Audio Interface"]
+        AzureAIFoundry --> McpAzureServer["MCP Azure Server"]:::largeText
+        McpAgent --> McpAzureServer
+        McpAzureServer --> GraphAPI["Microsoft Graph API"]:::largeText
+        McpAzureServer --> WebSearchAPI["Web Search API"]:::largeText
+        McpAzureServer --> NewsSearchAPI["News Search API"]:::largeText
+        McpAzureServer --> ImageSearchAPI["Image Search API"]:::largeText
+    end
+    
+    %% External Components - with explicit label
+    ExternalComponentsLabel -.- ExternalComponents
+    subgraph ExternalComponents[" "]
+        direction LR
+        RealtimeAudio --> SpeechToText["speech-to-text"]:::largeText
+        RealtimeAudio --> TextToSpeech["text-to-speech"]:::largeText
+        OneDriveAccess --> GraphAPI["Microsoft Graph API"]:::largeText
+        YahooFinance --> YFinanceAPI["Yahoo Finance API"]:::largeText
+    end
+    
+    %% Data Stores
+    DocIntelligence --> Documents[("Document Store")]:::largeText
+    VectorStore --> Embeddings[("Vector Embeddings")]:::largeText
+    
+    %% .NET Aspire Orchestration - with explicit label
+    AspireOrchLabel -.- AspireOrch
+    subgraph AspireOrch[" "]
+        direction LR
+        ServiceDiscovery["Service Discovery"]:::largeText
+        ConfigMgmt["Configuration Management"]:::largeText
+        Resilience["Resilience Patterns"]:::largeText
+        Monitoring["Health Monitoring"]:::largeText
+        
+        ServiceDiscovery -.-> ApiService
+        ConfigMgmt -.-> ApiService
+        Resilience -.-> ApiService
+        Monitoring -.-> ApiService
+    end
+    
+    %% Footer
+    Footer["Copyright© 2025 AITrailblazer"]:::footer
+
+    %% Enhanced styling with much larger text and better spacing
+    classDef default font-size:22px;
+    classDef mainTitle fill:none,stroke:none,color:#000000,font-weight:bold,font-size:48px;
+    classDef subtitle fill:none,stroke:none,color:#555555,font-weight:normal,font-size:24px;
+    classDef footer fill:none,stroke:none,color:#555555,font-weight:normal,font-size:20px;
+    classDef userNode fill:#E8F4FD,stroke:#2980B9,stroke-width:3px,color:#2C3E50,font-weight:bold,font-size:32px;
+    classDef applicationLayer fill:#5C9FDA,stroke:#2471A3,stroke-width:3px,color:white,font-weight:bold,font-size:22px;
+    classDef azureServices fill:#68B88E,stroke:#1E8449,stroke-width:3px,color:white,font-weight:bold,font-size:22px;
+    classDef dataStores fill:#F1C232,stroke:#B7950B,stroke-width:4px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef integrationLayer fill:#D7BDE2,stroke:#8E44AD,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef webFrontend fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef mcpServer fill:#FFD6A5,stroke:#FF8C00,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef externalComponents fill:#A2D9CE,stroke:#16A085,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef orchestration fill:#FADBD8,stroke:#E74C3C,stroke-width:3px,color:#34495E,font-weight:bold,font-size:22px;
+    classDef spacer fill:none,stroke:none,color:none;
+    classDef subgraphLabel fill:none,stroke:none,color:#333333,font-weight:bold,font-size:36px;
+    classDef largeText fill:#F5CBA7,stroke:#E67E22,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef routerAgent fill:#FFD700,stroke:#FF8C00,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef dynamicAgent fill:#87CEEB,stroke:#4682B4,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    classDef agentNode fill:#FFD700,stroke:#FF8C00,stroke-width:3px,color:#34495E,font-weight:bold,font-size:32px;
+    
+    %% Apply styles to nodes - make nodes larger with padding
+    class Title mainTitle
+    class Subtitle subtitle
+    class Footer footer
+    class WebUI,ApiService,DocService,VectorService,AzureAIFoundry,AudioService applicationLayer
+    class DocIntelligence,VectorStore,AzureOpenAI azureServices
+    class Documents,Embeddings dataStores
+    class DocUpload,Search,Chat,Audio largeText
+    class DocUpload,Search,Chat,Audio webFrontend
+    class OneDriveAccess,YahooFinance mcpServer
+    class SpeechToText,TextToSpeech,GraphAPI,YFinanceAPI externalComponents
+    class ServiceDiscovery,ConfigMgmt,Resilience,Monitoring orchestration
+    class RealtimeAudio integrationLayer
+    class WebFrontendSpacer,APIServiceSpacer,IntegrationLayerSpacer spacer
+    class WebFrontendLabel,APIServiceLabel,IntegrationLayerLabel,AzureServicesLabel,ExternalComponentsLabel,AspireOrchLabel subgraphLabel
+    
+    %% Style subgraphs - much larger text, stronger borders and more padding
+    style WebFrontend fill:#FCE7D1,stroke:#E67E22,stroke-width:4px,padding:40px
+    style APIService fill:#AAD0F4,stroke:#2471A3,stroke-width:4px,padding:40px
+    style IntegrationLayer fill:#E8DAEF,stroke:#8E44AD,stroke-width:4px,padding:40px
+    style AzureServices fill:#D1F2DD,stroke:#1E8449,stroke-width:4px,padding:40px
+    style ExternalComponents fill:#D1F2EB,stroke:#16A085,stroke-width:4px,padding:40px
+    style AspireOrch fill:#FADBD8,stroke:#E74C3C,stroke-width:4px,padding:40px
+    
+    %% Color coordinating labels with their subgraphs
+    style WebFrontendLabel color:#7D3C03
+    style APIServiceLabel color:#174E74
+    style IntegrationLayerLabel color:#5B2C76
+    style AzureServicesLabel color:#104726
+    style ExternalComponentsLabel color:#0B4B3A
+    style AspireOrchLabel color:#922B21
+    
+    %% Make all nodes larger with padding
+    style User padding:20px,margin:30px
+    style WebUI padding:20px,margin:30px
+    style DocUpload padding:20px,margin:25px
+    style Search padding:20px,margin:25px
+    style Chat padding:20px,margin:25px
+    style Audio padding:20px,margin:25px
+    style ApiService padding:20px,margin:30px
+    style DocService padding:20px,margin:25px
+    style VectorService padding:20px,margin:25px
+    style AzureAIFoundry padding:20px,margin:25px
+    style AudioService padding:20px,margin:25px
+    style DocIntelligence padding:20px,margin:25px
+    style VectorStore padding:20px,margin:25px
+    style RealtimeAudio padding:20px,margin:25px
+    style OneDriveAccess padding:20px,margin:25px
+    style YahooFinance padding:20px,margin:25px
+    style AzureOpenAI padding:20px,margin:25px
+    style SpeechToText padding:20px,margin:25px
+    style TextToSpeech padding:20px,margin:25px
+    style GraphAPI padding:20px,margin:25px
+    style YFinanceAPI padding:20px,margin:25px
+    style Documents padding:20px,margin:25px
+    style Embeddings padding:20px,margin:25px
+    style ServiceDiscovery padding:20px,margin:25px
+    style ConfigMgmt padding:20px,margin:25px
+    style Resilience padding:20px,margin:25px
+    style Monitoring padding:20px,margin:25px

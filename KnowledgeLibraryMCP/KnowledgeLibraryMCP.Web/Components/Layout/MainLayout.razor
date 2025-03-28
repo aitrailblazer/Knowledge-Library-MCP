@@ -1,0 +1,37 @@
+﻿@inherits LayoutComponentBase
+
+<FluentDesignSystemProvider AccentBaseColor="#4bedff">
+    <FluentMainLayout NavMenuTitle="Navigation menu" NavMenuWidth="30">
+    <Header><img src="@AITLogoUrl" height="64" alt="@Name Logo" class="logo-content" />
+        <FluentLabel Typo="Typography.Body" Appearance="Appearance.Neutral" Color="@Color.Neutral" Style="color: rgb(255, 255, 255);" 
+            class="align-vertical-center">KnowledgeLibraryMCP
+        </FluentLabel>
+    </Header>
+
+        <SubHeader></SubHeader>
+        <Body>
+            @Body
+        </Body>
+        <NavMenuContent >
+            <NavMenu /> 
+        </NavMenuContent>
+    </FluentMainLayout>
+ </FluentDesignSystemProvider>
+<FluentToastProvider />
+<FluentDialogProvider />
+<FluentTooltipProvider />
+<FluentMessageBarProvider />
+<FluentMenuProvider />
+
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+@code {
+    string Name = "AITrailblazer";
+    string AITLogoUrl = $"img/logoSmall.png";
+    //HorizontalAlignment Horizontal;
+    //VerticalAlignment Vertical;
+}
