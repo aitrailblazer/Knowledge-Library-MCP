@@ -63,3 +63,24 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
 
 ## Contact
 For questions or support, please contact the repository maintainer.
+
+## Technologies Used
+
+The `audio-search.py` script leverages the following technologies:
+
+- **Python**: The primary programming language used for the script.
+- **Azure OpenAI Service**: For processing queries and generating responses based on audio input.
+- **SpeechRecognition Library**: For capturing and converting audio input into text.
+- **WebSocket**: For real-time communication with Azure OpenAI services.
+- **Environment Variables**: Managed using a `.env` file for secure storage of credentials.
+
+These technologies enable the script to provide a seamless audio-to-text query experience with robust error handling and real-time processing.
+
+## Usage of GPT-4o Realtime Preview and Brave Search
+
+The `audio-search.py` script integrates the following advanced technologies:
+
+- gpt-4o-realtime-preview **GPT-4o Realtime Preview**: Utilized for real-time transcription of audio input and generating text and audio responses. This enables seamless interaction with the system through natural language queries.
+- **Brave Search API**: Used to fetch web search results based on the transcribed audio input. The results are summarized and presented to the user in both text and audio formats.
+
+These integrations ensure that the script provides a robust and interactive experience, combining the power of real-time AI processing with web search capabilities.

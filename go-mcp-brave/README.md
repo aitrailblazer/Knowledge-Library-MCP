@@ -164,3 +164,15 @@ Single Tool: Currently supports only "brave_web_search". Multi-tool support requ
 
 Error Handling: Errors in fetching non-web results (e.g., news, images, videos) are logged but don’t halt the response, potentially leaving sections empty.
 
+## Technologies Used
+
+The `go-mcp-brave` project leverages the following technologies:
+
+- **Go**: The primary programming language used for building the MCP server.
+- **Brave Search API**: For fetching web, news, image, and video search results.
+- **HTTP/JSON**: For implementing the MCP protocol and handling client-server communication.
+- **Go Concurrency**: For efficient handling of multiple requests and API calls.
+- **Azure AI Agent Service**: For integration with AI agents, enabling dynamic tool execution.
+
+These technologies ensure that the `go-mcp-brave` server is robust, efficient, and extensible for various search and AI integration use cases.
+

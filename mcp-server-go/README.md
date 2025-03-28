@@ -1,119 +1,67 @@
-# MCP Server (Model Context Protocol)
+# MCP Server Go
 
-The MCP server is a Go-based HTTP server that provides a standardized API for executing various tools. It supports tools like BraveSearch for web searches and YahooStockPrice for financial data retrieval.
+The `mcp-server-go` is a Go-based server designed to implement the Model Context Protocol (MCP) for enabling AI agents to interact with external tools and data sources. This server is a critical component of the Knowledge Library MCP project, providing high-performance and extensible capabilities for AI-driven applications.
 
-## Endpoints
+## Features
+- **MCP Implementation**: Fully compliant with the Model Context Protocol for tool execution and data retrieval.
+- **Tool Integration**: Includes tools for web search, financial data retrieval, and more.
+- **High Performance**: Built with Go for efficient handling of concurrent requests.
+- **Extensibility**: Easily extendable to add new tools and functionalities.
+- **Lightweight**: Minimal dependencies for easy deployment and maintenance.
 
-### List Available Tools
-To list all available tools and their capabilities, use the following `curl` command:
+## Prerequisites
+- Go 1.20 or later
+- API keys for integrated tools (e.g., Brave Search, Yahoo Finance)
 
-```bash
-curl -X GET http:///tools
-```
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd mcp-server-go
+   ```
+2. Install dependencies:
+   ```bash
+   go mod tidy
+   ```
+3. Run the server:
+   ```bash
+   go run main.go
+   ```
 
-This will return a JSON response containing metadata about the tools.
+## Usage
+1. Start the server:
+   ```bash
+   go run main.go
+   ```
+2. Send a POST request to the server with the following JSON payload:
+   ```json
+   {
+       "tool": "tool_name",
+       "parameters": {
+           "key": "value"
+       }
+   }
+   ```
+3. The server will execute the specified tool and return the results in JSON format.
 
-### Invoke a Tool
-To execute a specific tool, use the `/invoke` endpoint with a POST request. For example:
+## Files
+- `main.go`: Main entry point for the server.
+- `tools/`: Contains utility scripts for tool implementations (e.g., `brave_search.go`, `yahoo_finance.go`).
+- `go.mod`: Go module dependencies.
 
-```bash
-curl -X POST http://localhost:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "WebTools.BraveSearch", "parameters": {"query": "example search", "search_type": "web"}}'
-```
+## Troubleshooting
+- **Tool Errors**: Ensure the tool name and parameters in the request are valid.
+- **API Key Issues**: Verify that the API keys for integrated tools are correctly configured.
+- **Dependency Issues**: Run `go mod tidy` to ensure all dependencies are installed.
 
-Replace `WebTools.BraveSearch` with the desired tool and provide the appropriate parameters in the JSON payload.
+## Technologies Used
+- **Go**: The primary programming language used for the server.
+- **HTTP/JSON**: For implementing the MCP protocol and handling client-server communication.
+- **Go Concurrency**: For efficient handling of multiple requests and tool executions.
+- **External APIs**: For integrating tools like Brave Search and Yahoo Finance.
 
-## Supported Tools
+## Contributing
+Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
-### BraveSearch
-- **Description**: Perform web, image, video, or news searches using the Brave Search API.
-- **Parameters**:
-  - `query` (string, required): The search query.
-  - `search_type` (string, optional): The type of search (`web`, `image`, `video`, `news`). Defaults to `web`.
-  - `api_key` (string, optional): Your Brave API subscription key. If not provided, the server will use the `BRAVE_API_KEY` environment variable.
-
-### YahooStockPrice
-- **Description**: Fetch historical stock prices from Yahoo Finance with a specified interval in structured JSON format.
-- **Parameters**:
-  - `ticker` (string, required): The stock ticker symbol (e.g., `AAPL`, `TSLA`).
-  - `interval` (string, required): The interval for historical data (e.g., `1d`, `1wk`, `1mo`).
-  - `period` (string, optional): The period for historical data (e.g., `1y`, `5y`).
-
-## Environment Variables
-
-- `BRAVE_API_KEY`: Your Brave API subscription key for accessing BraveSearch.
-
-## Running the Server
-
-To start the MCP server, navigate to the `mcp-server-go` directory and run:
-
-```bash
-go run main.go
-```
-
-The server will start on `http://localhost:8080` by default.
-
-## Example `curl` Commands
-
-### Web Search
-```bash
-curl -X POST http://localhost:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "WebTools.BraveSearch", "parameters": {"query": "example search", "search_type": "web"}}'
-```
-
-### Image Search
-```bash
-curl -X POST http://localhost:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "WebTools.BraveSearch", "parameters": {"query": "example search", "search_type": "image"}}'
-```
-
-### Video Search
-```bash
-curl -X POST http://localhost:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "WebTools.BraveSearch", "parameters": {"query": "example search", "search_type": "video"}}'
-```
-
-### News Search
-```bash
-curl -X POST http://localhost:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "WebTools.BraveSearch", "parameters": {"query": "example search", "search_type": "news"}}'
-```
-
-## Example `curl` Commands with Environment Variables
-
-### Web Search
-```bash
-curl -s --compressed "https://api.search.brave.com/res/v1/web/search?q=example+search" \
-  -H "Accept: application/json" \
-  -H "Accept-Encoding: gzip" \
-  -H "X-Subscription-Token: $BRAVE_API_KEY"
-```
-
-### Image Search
-```bash
-curl -s --compressed "https://api.search.brave.com/res/v1/images/search?q=example+search&safesearch=strict&count=20&search_lang=en&country=us&spellcheck=1" \
-  -H "Accept: application/json" \
-  -H "Accept-Encoding: gzip" \
-  -H "X-Subscription-Token: $BRAVE_API_KEY"
-```
-
-### Video Search
-```bash
-curl -s --compressed "https://api.search.brave.com/res/v1/videos/search?q=example+search&safesearch=strict&count=20&search_lang=en&country=us&spellcheck=1" \
-  -H "Accept: application/json" \
-  -H "Accept-Encoding: gzip" \
-  -H "X-Subscription-Token: $BRAVE_API_KEY"
-```
-
-### News Search
-```bash
-curl -s --compressed "https://api.search.brave.com/res/v1/news/search?q=Tesla+stock+news&safesearch=strict&count=20&search_lang=en&country=us&spellcheck=1" \
-  -H "Accept: application/json" \
-  -H "Accept-Encoding: gzip" \
-  -H "X-Subscription-Token: $BRAVE_API_KEY"
-```
+## License
+This project is licensed under the MIT License. See the `LICENSE` file for more details.

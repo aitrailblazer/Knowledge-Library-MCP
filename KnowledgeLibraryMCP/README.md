@@ -154,3 +154,63 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Microsoft Azure AI services
 - .NET Aspire team for the cloud-native application framework
 - FluentUI team for the component library
+
+## Technologies Used
+
+The Knowledge Library MCP project leverages the following technologies:
+
+- **.NET 9.0**: For building the web and API services.
+- **Azure AI Services**: For document intelligence and vector store management.
+- **Mermaid.js**: For generating architecture diagrams.
+- **Node.js and npm**: Required for running the Mermaid CLI.
+- **Python**: Used in the `mcp-azure-server` for additional backend services.
+- **Go**: Used in `go-mcp-brave` and `go-mcp-metasearch` for specific microservices.
+- **Fluent UI**: For building modern and responsive web components.
+- **Markdig**: For Markdown processing.
+- **Bash**: For automation scripts like `update_architecture_diagram.sh`.
+
+This combination of technologies ensures a robust, scalable, and user-friendly system.
+
+### Technologies Used in `Home.razor`
+
+The `Home.razor` component in the Knowledge Library MCP project utilizes the following technologies:
+
+- **Blazor**: For building interactive web UI components.
+- **Fluent UI**: For modern and responsive web components, such as cards, buttons, and progress indicators.
+- **Azure AI Services**: For integrating document intelligence and vector store management.
+- **Markdig**: For converting Markdown content to HTML.
+- **Microsoft.JSInterop**: For JavaScript interop in Blazor components.
+- **C#**: For backend logic and Razor component development.
+
+These technologies enable a seamless and user-friendly experience in the `Home.razor` component, supporting features like file uploads, progress tracking, and AI-powered interactions.
+
+### Multimodal Capabilities
+
+The Knowledge Library MCP project is designed to be multimodal, enabling it to process and analyze various types of data, including:
+
+- **Text**: Extract and analyze information from documents such as PDFs, Word files, and plain text.
+- **Images**: Process and extract data from images, including charts and tables.
+- **Audio**: Handle real-time audio queries and responses using the audio processing tools.
+- **Live Data**: Integrate live data sources, such as stock prices and financial updates, for dynamic insights.
+
+This multimodal approach ensures that the system can handle diverse data types, providing a comprehensive and versatile solution for document and data management.
+
+### Document Intelligence for Images
+
+The Knowledge Library MCP project leverages the **Azure Document Intelligence** service to process and analyze images. This includes:
+
+- Extracting text and structured data from images, such as charts, tables, and scanned documents.
+- Converting image-based content into searchable and analyzable formats.
+- Supporting multimodal capabilities by integrating image data with text and live data sources.
+
+This integration ensures that the system can handle image-based documents seamlessly, providing a comprehensive solution for document and data management.
+
+### Azure AI Foundry with GPT-4o
+
+The Knowledge Library MCP project integrates **Azure AI Foundry** with **GPT-4o** to enhance its AI capabilities. This includes:
+
+- **Multimodal AI**: Leveraging GPT-4o for processing both text and image-based data.
+- **Advanced Natural Language Understanding**: Enabling sophisticated interactions with documents through natural language queries.
+- **Seamless Integration**: Combining Azure AI Foundry's managed services with GPT-4o's multimodal capabilities for a robust and scalable solution.
+
+This integration ensures that the system can handle complex queries and provide accurate, context-aware responses across various data types.

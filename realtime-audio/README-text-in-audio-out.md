@@ -67,9 +67,6 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for more details.
 
-## Contact
-For questions or support, please contact the repository maintainer.
-
 ## Text Search Audio
 
 The `text-search-audio.py` script is designed to perform text-based searches and provide audio responses. It integrates text input with audio output capabilities, making it a versatile tool for interactive applications.
@@ -92,3 +89,26 @@ Ensure you have the necessary dependencies installed. Refer to the `requirements
 
 ### Integration
 This script can be integrated with other components in the `realtime-audio` folder to enhance functionality and provide a seamless user experience.
+
+## Technologies Used
+
+The `text-in-audio-out.py` script leverages the following technologies:
+
+- **Python**: The primary programming language used for the script.
+- **Azure OpenAI Service**: For processing audio input and generating responses in both text and audio formats.
+- **SpeechRecognition Library**: For capturing and converting audio input into text.
+- **PyDub**: For audio playback and manipulation.
+- **WebSocket**: For real-time communication with Azure OpenAI services.
+- **Environment Variables**: Managed using a `.env` file for secure storage of credentials.
+
+These technologies enable the script to provide a seamless real-time audio-to-text and text-to-audio interaction experience.
+
+## Usage of GPT-4o Realtime Preview
+
+The `text-in-audio-out.py` script integrates gpt-4o-realtime-preview **GPT-4o Realtime Preview** to enhance its real-time audio processing capabilities. This includes:
+
+- **Real-Time Transcription**: Converts audio input into text with high accuracy and low latency.
+- **Text-to-Audio Responses**: Generates audio responses in real-time, providing a seamless conversational experience.
+- **Multimodal Interaction**: Combines audio and text processing to support dynamic and interactive use cases.
+
+This integration ensures that the script delivers a robust and interactive experience, leveraging the power of GPT-4o for real-time AI-driven interactions.
