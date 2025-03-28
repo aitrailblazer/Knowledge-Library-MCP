@@ -1,5 +1,5 @@
-#  Knowledge Library MCP—Azure AI Agent Service and MCP Powers Precision Querying 
-Azure Al Services Multi-Agent Multimodal - Speech, Vision, Text RAG Implementation
+# Knowledge Library MCP—Azure AI Agent Service and MCP Powers Precision Querying 
+Azure AI Services Multi-Agent Multimodal - Speech, Vision, Text RAG Implementation
 leveraging Anthropic’s Model Context Protocol
 
 Knowledge Library MCP (KL MCP) is a multi-modal application leveraging Azure AI Agent Service to locate documents—text and images—and deliver conversational insights via bots. It enhances search with live data integration and Responsible AI principles, designed for scalable, professional-grade querying.  
@@ -13,18 +13,16 @@ Imagine thousands of documents—Machine Learning notes, TSLA 10-Ks, workflows, 
 ![Architecture Diagram](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/AIEdgePulse06-1-front.png)  
 *The library-like backbone of KL MCP, fueled by Azure AI Agent Service, Microsoft Document AI, Microsoft Graph, and my custom MCP bots.*
 
-![Architecture Diagram](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/KnowledgeLibraryMCP-Architecture.png) 
+![KL MCP Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/KnowledgeLibraryMCP-Architecture.png)  
+*Detailed architecture of KL MCP, showcasing its multi-agent, multimodal design.*
 
 ## Inspiration
 
 As a developer, I faced endless hours sifting through PDFs, Excel sheets, and charts for a single useful detail. Anthropic’s Model Context Protocol inspired me—context could unlock disorganized data’s potential. I began by segmenting documents into Cosmos DB NoSQL, but as the volume grew, search accuracy faltered. That struggle drove me to create KL MCP—a structured, library-like solution powered by Azure AI Agent Service and Microsoft Document AI, converting a daily frustration into a competitive edge.  
 
-
-
 ## What It Does
 
 KL MCP retrieves documents—text or images—like Machine Learning pipelines, SEC filings, or workflow diagrams, and supports conversational queries. Ask a TSLA 10-K chart, “What’s the revenue outlook?”—it delivers. It processes PDFs, Word documents, Excel sheets, PowerPoint slides, raw text, HTML, and images, using Microsoft Document AI’s OCR and layout analysis for precision. With Azure AI Agent Service and custom bots, it surpasses Azure AI Search by integrating live data and code-generated insights, offering a dynamic, responsive chat experience. Data captured, answers delivered.  
-
 
 ![KL MCP Demo](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/AIEdgePulse06-front.png)  
 *KL MCP snags OneDrive docs and powers chat queries across text and images like a pro.*
@@ -68,11 +66,9 @@ With Copilot’s nudge, I tuned a GPT-4o agent to “find files, run code, and c
 ### Solving the MSCI Chart  
 A highlight was analyzing the MSCI market cap chart from a TSLA filing—“SELECTED COUNTRIES MSCI MARKET CAP AS A PERCENT OF WORLD MSCI (percent, daily, based on US$),” tracking US, Europe, and Japan from 2016 to 2025. GPT-4o extracted the US red line, stable above 60% by 2025; Europe’s blue line, falling from 50% to over 35%; and Japan’s green line, declining from 70% to around 45%. It noted specifics—like the US at 61.9 on March 14, 2024—and converted the chart into text, stored for Azure AI Agent Service to answer queries like “What’s Japan’s MSCI share in 2020?” with precision.  
 
-
 ## Challenges I Faced
 
 Scaling proved difficult—Cosmos DB NoSQL struggled with precision as document counts reached thousands. Structuring a library-like system within Azure required extensive iteration, and aligning metadata with vector stores demanded meticulous effort. Integrating live data, code outputs, and Responsible AI standards—ensuring fairness and transparency—tested my resolve, but persistent debugging kept the project on track.  
-
 
 ## Accomplishments I’m Proud Of
 
@@ -97,22 +93,34 @@ FinancialAnalysisApp, KL MCP’s backbone, received critical upgrades to handle 
 The Knowledge Library MCP repository includes the following projects:
 
 ### 1. `CompanyResearch`
-Tools and scripts for conducting company research, including document classification and structured data extraction.
+Tools and scripts for conducting company research, including document classification and structured data extraction.  
+![CompanyResearch Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/CompanyResearch-Architecture.png)  
+*Architecture of CompanyResearch, highlighting its document processing and data extraction workflow.*
 
 ### 2. `FinancialAnalysisApp`
-A .NET-based application for financial analysis, supporting document processing and conversational insights.
+A .NET-based application for financial analysis, supporting document processing and conversational insights.  
+![FinancialAnalysisApp Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/FinancialAnalysisApp-Architecture.png)  
+*Architecture of FinancialAnalysisApp, showcasing its financial data handling and chat capabilities.*
 
 ### 3. `go-mcp-brave`
-A Go-based MCP server integrating with the Brave Search API for real-time web, news, image, and video search results.
+A Go-based MCP server integrating with the Brave Search API for real-time web, news, image, and video search results.  
+![go-mcp-brave Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/go-mcp-brave-Architecture.png)  
+*Architecture of go-mcp-brave, detailing its integration with Brave Search API.*
 
 ### 4. `go-mcp-metasearch`
-A Go-based application providing metasearch functionality by aggregating results from multiple search engines and APIs.
+A Go-based application providing metasearch functionality by aggregating results from multiple search engines and APIs.  
+![go-mcp-metasearch Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/go-mcp-metasearch-Architecture.png)  
+*Architecture of go-mcp-metasearch, illustrating its multi-engine aggregation process.*
 
 ### 5. `mcp-azure-server`
-A Python-based server integrating with Azure AI services for document processing, vector store management, and AI-powered interactions.
+A Python-based server integrating with Azure AI services for document processing, vector store management, and AI-powered interactions.  
+![mcp-azure-server Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/mcp-azure-server-Architecture.png)  
+*Architecture of mcp-azure-server, showing its Azure AI integration and processing pipeline.*
 
 ### 6. `mcp-server-go`
-A Go-based MCP server implementing the Model Context Protocol for tool execution and data retrieval.
+A Go-based MCP server implementing the Model Context Protocol for tool execution and data retrieval.  
+![mcp-server-go Architecture](https://raw.githubusercontent.com/aitrailblazer/Knowledge-Library-MCP/refs/heads/main/img/mcp-server-go-Architecture.png)  
+*Architecture of mcp-server-go, outlining its MCP implementation and tool execution.*
 
 ### 7. `realtime-audio`
 A Python project for real-time audio processing, supporting audio-to-text and text-to-audio interactions.
